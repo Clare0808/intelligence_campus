@@ -2,6 +2,8 @@ module.exports = {
   root: true,
   env: {
     node: true,
+    browser: true,
+    es2021: true,
   },
   extends: [
     "plugin:vue/vue3-essential",
@@ -9,7 +11,9 @@ module.exports = {
     "plugin:prettier/recommended",
   ],
   parserOptions: {
-    parser: "@babel/eslint-parser",
+    parser: "espree",
+    ecmaVersion: 2021,
+    sourceType: "module",
   },
   rules: {
     "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
