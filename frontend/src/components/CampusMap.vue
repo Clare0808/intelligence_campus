@@ -9,6 +9,19 @@
     <div v-else-if="loading" class="map-message" role="status">
       載入校園地圖中…
     </div>
+    <button
+      class="reset-view"
+      type="button"
+      title="回到預設視角"
+      aria-label="回到預設視角"
+      :disabled="loading || !!error"
+      @click="resetView"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M4 11a8 8 0 1 1 2.3 6.1" />
+        <path d="M4 5v6h6" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -39,6 +52,24 @@ setWorkerUrl(workerUrl);
 let map;
 let activeId = "";
 let buildingLookup = new globalThis.Map();
+const defaultView = {
+  center: [121.1915503, 24.9684403], // Nominatim OSM relation 18727079
+  zoom: 15.5,
+  pitch: 55,
+  bearing: -24,
+};
+// Outer extent of OSM National Central University multipolygon relation 18727079
+// (outer ways 179149377, 1361161284, 1361161285). This is a bounding box,
+// not the exact irregular campus boundary.
+const campusBounds = [
+  [121.1843596, 24.9635065],
+  [121.1980519, 24.9722322],
+];
+
+function resetView() {
+  if (map && !loading.value && !error.value)
+    map.easeTo({ ...defaultView, duration: 800 });
+}
 
 function updateSelection(id) {
   if (!map?.getSource("campus-buildings")) return;
@@ -81,10 +112,10 @@ onMounted(async () => {
     map = new Map({
       container: container.value,
       style: "https://tiles.openfreemap.org/styles/liberty",
-      center: [121.1915503, 24.9684403], // Nominatim OSM relation 18727079
-      zoom: 15.5,
-      pitch: 55,
-      bearing: -24,
+      ...defaultView,
+      minZoom: 15,
+      maxZoom: 18,
+      maxBounds: campusBounds,
       maxPitch: 85,
       antialias: true,
     });
@@ -140,6 +171,39 @@ onBeforeUnmount(() => {
 .map-container {
   width: 100%;
   height: 100%;
+}
+.reset-view {
+  position: absolute;
+  z-index: 1;
+  top: 118px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  padding: 5px;
+  border: 0;
+  border-radius: 4px;
+  background: white;
+  color: #333;
+  box-shadow: 0 0 0 2px #0000001a;
+  cursor: pointer;
+}
+.reset-view:hover:not(:disabled) {
+  background: #f2f2f2;
+}
+.reset-view:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.reset-view svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .map-message {
   position: absolute;
