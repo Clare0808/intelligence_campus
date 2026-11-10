@@ -11,11 +11,11 @@
         </span>
         <span class="brand-name">NCU <span>校園地圖</span></span>
       </a>
-      <nav class="top-nav" aria-label="主要導覽">
+      <!-- <nav class="top-nav" aria-label="主要導覽">
         <a class="nav-link active" href="#explore">探索地圖</a>
         <a class="nav-link" href="#directory">地點列表</a>
         <a class="nav-link" href="#about-map">地圖說明</a>
-      </nav>
+      </nav> -->
       <a
         class="campus-link"
         href="https://www.ncu.edu.tw/"

@@ -9,22 +9,6 @@
     <div v-else-if="loading" class="map-message" role="status">
       載入校園地圖中…
     </div>
-    <div class="map-credit">
-      地圖資料 ©
-      <a
-        href="https://www.openstreetmap.org/copyright"
-        target="_blank"
-        rel="noopener noreferrer"
-        >OpenStreetMap contributors</a
-      >
-      · 底圖
-      <a
-        href="https://openfreemap.org/"
-        target="_blank"
-        rel="noopener noreferrer"
-        >OpenFreeMap</a
-      >
-    </div>
   </div>
 </template>
 
@@ -152,7 +136,6 @@ onBeforeUnmount(() => {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 450px;
 }
 .map-container {
   width: 100%;
