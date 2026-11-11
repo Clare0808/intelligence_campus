@@ -31,7 +31,7 @@ def normalize_name(name):
 
 def build_name_index(features):
     index = {}
-    for feature in features:
+    for feature_index, feature in enumerate(features):
         if not isinstance(feature, dict):
             continue
         properties = feature.get("properties")
@@ -39,6 +39,9 @@ def build_name_index(features):
             continue
         name = normalize_name(properties.get("name"))
         building_id = properties.get("id")
+        if building_id is None:
+            # 與前端 prepareBuildings 的 nullish fallback 一致，使用原始陣列索引。
+            building_id = f"local/building-{feature_index}"
         if name and isinstance(building_id, str) and building_id:
             index.setdefault(name, set()).add(building_id)
     return index

@@ -76,22 +76,20 @@ export function prepareBuildings(collection) {
       const category = categoryForName(feature.properties.name);
       // 3 m / floor is only a visual estimate, not surveyed height.
       // Without any height evidence, 6 m is strictly a display placeholder.
-      const displayHeight =
-        isNonBuilding
-          ? nonBuildingDisplayHeight
-          : measuredHeight !== null
-          ? measuredHeight
-          : floorCount !== null
-          ? floorCount * metersPerFloor
-          : 6;
-      const displaySource =
-        isNonBuilding
-          ? "non_building"
-          : measuredHeight !== null
-          ? "osm"
-          : floorCount !== null
-          ? "levels_estimate"
-          : "visual_placeholder";
+      const displayHeight = isNonBuilding
+        ? nonBuildingDisplayHeight
+        : measuredHeight !== null
+        ? measuredHeight
+        : floorCount !== null
+        ? floorCount * metersPerFloor
+        : 6;
+      const displaySource = isNonBuilding
+        ? "non_building"
+        : measuredHeight !== null
+        ? "osm"
+        : floorCount !== null
+        ? "levels_estimate"
+        : "visual_placeholder";
       return {
         ...feature,
         properties: {
@@ -131,23 +129,22 @@ export function addCampusLayers(map, data) {
     source: "campus-buildings",
     paint: {
       "line-color": [
-"line-color": [
-  "case",
-  ["boolean", ["feature-state", "selected"], false],
-  "#e3914b",
-  [
-    "match",
-    ["get", "category"],
-    ...categories.flatMap(({ id, color }) => [id, color]),
-    "#80918b",
-  ],
-],
-"line-width": [
-  "case",
-  ["boolean", ["feature-state", "selected"], false],
-  3,
-  1.3,
-],
+        "case",
+        ["boolean", ["feature-state", "selected"], false],
+        "#e3914b",
+        [
+          "match",
+          ["get", "category"],
+          ...categories.flatMap(({ id, color }) => [id, color]),
+          "#80918b",
+        ],
+      ],
+      "line-width": [
+        "case",
+        ["boolean", ["feature-state", "selected"], false],
+        3,
+        1.3,
+      ],
       "line-opacity": 0.85,
     },
   });
