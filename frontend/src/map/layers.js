@@ -20,7 +20,8 @@ export async function loadConstructionData(signal) {
   if (
     !["missing", "ready"].includes(data?.data_status) ||
     !Array.isArray(data.building_ids) ||
-    data.building_ids.some((id) => typeof id !== "string")
+    data.building_ids.some((id) => typeof id !== "string") ||
+    !Array.isArray(data.announcements)
   ) {
     throw new Error("施工資料格式錯誤");
   }
@@ -146,7 +147,7 @@ export function addCampusLayers(map, data) {
       "fill-extrusion-color": [
         "case",
         ["boolean", ["feature-state", "construction"], false],
-        "#c54c3e",
+        "#ff4b48",
         ["boolean", ["feature-state", "selected"], false],
         "#44f3ff",
         [

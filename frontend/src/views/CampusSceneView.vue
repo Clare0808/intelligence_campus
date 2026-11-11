@@ -21,6 +21,7 @@
             @loaded="onLoaded"
             @select="onSelect"
             @reset="selectedId = ''"
+            @construction-loaded="onConstructionLoaded"
           />
         </div>
       </section>
@@ -81,6 +82,32 @@
         <div v-if="selectedBuilding" class="details" aria-live="polite">
           <span class="eyebrow">{{ selectedCategory?.label ?? "建築" }}</span>
           <h2>{{ selectedBuilding.properties.name || "未命名建築" }}</h2>
+          <section class="construction-details" aria-label="施工資訊">
+            <h3>施工資訊</h3>
+            <p v-if="!selectedAnnouncements.length">尚無施工資訊</p>
+            <article
+              v-for="(announcement, index) in selectedAnnouncements"
+              :key="`${announcement.Id ?? 'announcement'}-${index}`"
+              class="construction-announcement"
+            >
+              <h4>{{ announcement.NewsTitle || "施工公告" }}</h4>
+              <p v-if="announcement.construction?.description">
+                {{ announcement.construction.description }}
+              </p>
+              <p v-if="announcement.location?.raw_text">
+                地點：{{ announcement.location.raw_text }}
+              </p>
+              <p
+                v-if="announcement.construction?.start_date || announcement.construction?.end_date"
+              >
+                施工期間：{{ announcement.construction?.start_date || "未提供" }}
+                ～ {{ announcement.construction?.end_date || "未提供" }}
+              </p>
+              <p v-if="announcement.needs_review" class="review-note">
+                此公告資訊尚待確認
+              </p>
+            </article>
+          </section>
         </div>
       </aside>
       <button
@@ -102,6 +129,7 @@ import { computed, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
 import { categories } from "../map/categories";
 const buildings = ref([]);
+const constructionAnnouncements = ref([]);
 const selectedId = ref("");
 const query = ref("");
 const sidebarOpen = ref(true);
@@ -138,8 +166,16 @@ const selectedBuilding = computed(() =>
 const selectedCategory = computed(() =>
   categories.find((category) => category.id === selectedBuilding.value?.properties.category)
 );
+const selectedAnnouncements = computed(() =>
+  constructionAnnouncements.value.filter(
+    (announcement) => announcement.location?.location_id === selectedId.value
+  )
+);
 function onLoaded(features) {
   buildings.value = features.filter((feature) => feature.properties.name);
+}
+function onConstructionLoaded(announcements) {
+  constructionAnnouncements.value = announcements;
 }
 function onSelect(id) {
   selectedId.value = id;
@@ -364,6 +400,32 @@ input:focus-visible {
   margin: 8px 0;
   font-size: 18px;
   color: #f3fcff;
+}
+.construction-details {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.construction-details h3 {
+  margin: 0 0 10px;
+  color: #ff4b48;
+  font-size: 14px;
+}
+.construction-announcement + .construction-announcement {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.construction-announcement h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+.construction-announcement p {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.review-note {
+  color: #ffb3a5;
 }
 .details a {
   overflow-wrap: anywhere;

@@ -56,7 +56,7 @@ import {
 // Vue compiler macros are global at runtime, and ESLint 7 needs explicit globals.
 /* global defineProps, defineEmits */
 const props = defineProps({ selectedId: { type: String, default: "" } });
-const emit = defineEmits(["select", "loaded", "reset"]);
+const emit = defineEmits(["select", "loaded", "reset", "construction-loaded"]);
 const container = ref(null);
 const loading = ref(true);
 const error = ref("");
@@ -124,6 +124,12 @@ async function loadConstruction() {
       buildingLookup.has(id)
     );
     markConstructionBuildings(map, ids);
+    emit(
+      "construction-loaded",
+      data.announcements.filter((announcement) =>
+        ids.includes(announcement?.location?.location_id)
+      )
+    );
     constructionCount.value = ids.length;
     constructionStatus.value = data.data_status;
   } catch {
@@ -190,8 +196,8 @@ onMounted(async () => {
       addCampusLayers(map, data);
       updateSelection(props.selectedId);
       loading.value = false;
-loadConstruction();
-emit("loaded", preparedBuildings.features);
+      loadConstruction();
+      emit("loaded", preparedBuildings.features);
       map.on("click", "campus-building-extrusion", (event) => {
         const feature = event.features?.[0];
         if (feature) emit("select", feature.properties.id);
@@ -297,18 +303,24 @@ onBeforeUnmount(() => {
 }
 .construction-legend {
   position: absolute;
-  right: 16px;
-  bottom: 40px;
+  z-index: 1;
+  top: 10px;
+  right: 59px;
   display: grid;
-  gap: 6px;
-  max-width: calc(100% - 32px);
-  padding: 12px;
-  border: 1px solid #dfe9dc;
-  border-radius: 8px;
-  background: #fffffff2;
-  color: #20372d;
+  gap: 4px;
+  max-width: calc(100% - 95px);
+  padding: 9px 12px;
+  border: 1px solid #35678a;
+  border-radius: 3px;
+  background: #102f50;
+  color: #dceef6;
+  box-shadow: 0 4px 18px #020b1877;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.5;
+}
+.construction-legend span + span {
+  color: #73d9ff;
+  font-size: 11px;
 }
 .construction-key::before {
   content: "";
@@ -317,7 +329,7 @@ onBeforeUnmount(() => {
   height: 10px;
   margin-right: 6px;
   border-radius: 2px;
-  background: #c54c3e;
+  background: #ff4b48;
 }
 .map-credit {
   position: absolute;
