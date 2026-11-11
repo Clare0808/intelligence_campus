@@ -241,7 +241,7 @@
                   />
                   <path
                     class="landscape-field"
-                    d="M323 719 470 724 503 863 357 882 283 811Z"
+                    d="M230 368 385 371 415 606 288 614 228 529Z"
                   />
                   <path
                     class="landscape-field"
@@ -255,21 +255,23 @@
                     class="lake-shine"
                     d="M608 375 Q649 345 687 369 M625 408 Q660 428 691 398"
                   />
+                  <!-- OSM relation 5951533 places the athletics track west of
+                       羽球館, extending north–south, not by the south gate. -->
                   <ellipse
                     class="athletic-track"
-                    cx="402"
-                    cy="796"
-                    rx="82"
-                    ry="49"
-                    transform="rotate(-20 402 796)"
+                    cx="320"
+                    cy="492"
+                    rx="58"
+                    ry="104"
+                    transform="rotate(-12 320 492)"
                   />
                   <ellipse
                     class="athletic-field"
-                    cx="402"
-                    cy="796"
-                    rx="59"
-                    ry="30"
-                    transform="rotate(-20 402 796)"
+                    cx="320"
+                    cy="492"
+                    rx="38"
+                    ry="80"
+                    transform="rotate(-12 320 492)"
                   />
                   <rect
                     class="sports-court"
@@ -297,7 +299,7 @@
                 </g>
                 <g class="landscape-labels" aria-hidden="true">
                   <text x="650" y="399">中大湖</text>
-                  <text x="400" y="803">運動場</text>
+                  <text x="320" y="495">操場</text>
                   <text x="237" y="251">校園綠地</text>
                   <text x="1358" y="755">運動園區</text>
                   <text x="773" y="936">中大路・正門</text>

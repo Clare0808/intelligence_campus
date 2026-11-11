@@ -95,6 +95,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
+import { prepareBuildings } from "../map/layers";
 const baseUrl = import.meta.env.BASE_URL;
 const buildings = ref([]);
 const selectedId = ref("");
@@ -115,17 +116,19 @@ const selectedBuilding = computed(() =>
   buildings.value.find((feature) => feature.properties.id === selectedId.value)
 );
 function onLoaded(features) {
-  buildings.value = features;
+  buildings.value = prepareBuildings({ features }).features.filter(
+    (feature) => feature.properties.display_source !== "non_building"
+  );
 }
 function onSelect(id) {
   selectedId.value = id;
   sidebarOpen.value = true;
 }
 function heightDescription(properties) {
-  if (properties.height !== null)
-    return `${properties.height} 公尺（OSM 高度標籤）`;
-  if (properties.building_levels !== null)
-    return `OSM 未提供；視覺推估約 ${properties.building_levels * 3} 公尺（${
+  if (properties.display_source === "osm")
+    return `${properties.display_height} 公尺（OSM 高度標籤）`;
+  if (properties.display_source === "levels_estimate")
+    return `視覺推估約 ${properties.display_height} 公尺（${
       properties.building_levels
     } 層 × 3 公尺）`;
   return "未知（地圖以 6 公尺示意顯示，不代表真實高度）";

@@ -1,5 +1,14 @@
 const emptyCollection = () => ({ type: "FeatureCollection", features: [] });
 
+const metersPerFloor = 3;
+
+function positiveNumber(value) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  if (typeof value === "string" && !value.trim()) return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
 export async function loadCampusData(signal) {
   const files = ["buildings", "roads"];
   const responses = await Promise.all(
@@ -30,18 +39,26 @@ export function prepareBuildings(collection) {
         min_height: minHeight,
         building_levels: levels,
       } = feature.properties;
+      const measuredHeight = positiveNumber(height);
+      const floorCount = positiveNumber(levels);
+      const baseHeight = positiveNumber(minHeight);
+      const isNonBuilding = levels === 0 || levels === "0";
       // 3 m / floor is only a visual estimate, not surveyed height.
       // Without any height evidence, 6 m is strictly a display placeholder.
       const displayHeight =
-        height !== null && Number.isFinite(height)
-          ? height
-          : levels !== null && Number.isFinite(levels)
-          ? levels * 3
+        isNonBuilding
+          ? 0
+          : measuredHeight !== null
+          ? measuredHeight
+          : floorCount !== null
+          ? floorCount * metersPerFloor
           : 6;
       const displaySource =
-        height !== null && Number.isFinite(height)
+        isNonBuilding
+          ? "non_building"
+          : measuredHeight !== null
           ? "osm"
-          : levels !== null && Number.isFinite(levels)
+          : floorCount !== null
           ? "levels_estimate"
           : "visual_placeholder";
       return {
@@ -49,8 +66,7 @@ export function prepareBuildings(collection) {
         properties: {
           ...feature.properties,
           display_height: displayHeight,
-          display_min_height:
-            minHeight !== null && Number.isFinite(minHeight) ? minHeight : 0,
+          display_min_height: isNonBuilding ? 0 : baseHeight ?? 0,
           display_source: displaySource,
         },
       };
@@ -86,6 +102,7 @@ export function addCampusLayers(map, data) {
     id: "campus-building-extrusion",
     type: "fill-extrusion",
     source: "campus-buildings",
+    filter: ["!=", ["get", "display_source"], "non_building"],
     paint: {
       "fill-extrusion-color": [
         "case",
