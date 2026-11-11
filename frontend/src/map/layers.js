@@ -1,6 +1,9 @@
+import { categories, categoryForName } from "./categories.js";
+
 const emptyCollection = () => ({ type: "FeatureCollection", features: [] });
 
 const metersPerFloor = 3;
+const nonBuildingDisplayHeight = 0.2;
 
 function positiveNumber(value) {
   if (typeof value !== "number" && typeof value !== "string") return null;
@@ -33,7 +36,7 @@ export async function loadCampusData(signal) {
 export function prepareBuildings(collection) {
   return {
     ...collection,
-    features: collection.features.map((feature) => {
+    features: collection.features.map((feature, index) => {
       const {
         height,
         min_height: minHeight,
@@ -42,12 +45,16 @@ export function prepareBuildings(collection) {
       const measuredHeight = positiveNumber(height);
       const floorCount = positiveNumber(levels);
       const baseHeight = positiveNumber(minHeight);
-      const isNonBuilding = levels === 0 || levels === "0";
+      const isNonBuilding =
+        levels === 0 ||
+        levels === "0" ||
+        feature.properties.name === "排球場（小榕樹）";
+      const category = categoryForName(feature.properties.name);
       // 3 m / floor is only a visual estimate, not surveyed height.
       // Without any height evidence, 6 m is strictly a display placeholder.
       const displayHeight =
         isNonBuilding
-          ? 0
+          ? nonBuildingDisplayHeight
           : measuredHeight !== null
           ? measuredHeight
           : floorCount !== null
@@ -65,6 +72,8 @@ export function prepareBuildings(collection) {
         ...feature,
         properties: {
           ...feature.properties,
+          id: feature.properties.id ?? `local/building-${index}`,
+          category,
           display_height: displayHeight,
           display_min_height: isNonBuilding ? 0 : baseHeight ?? 0,
           display_source: displaySource,
@@ -96,23 +105,32 @@ export function addCampusLayers(map, data) {
     id: "campus-building-footprints",
     type: "line",
     source: "campus-buildings",
-    paint: { "line-color": "#345947", "line-width": 1.3, "line-opacity": 0.85 },
+    paint: {
+      "line-color": [
+        "match",
+        ["get", "category"],
+        ...categories.flatMap(({ id, color }) => [id, color]),
+        "#80918b",
+      ],
+      "line-width": 1.3,
+      "line-opacity": 0.85,
+    },
   });
   map.addLayer({
     id: "campus-building-extrusion",
     type: "fill-extrusion",
     source: "campus-buildings",
-    filter: ["!=", ["get", "display_source"], "non_building"],
     paint: {
       "fill-extrusion-color": [
         "case",
         ["boolean", ["feature-state", "selected"], false],
-        "#e3914b",
-        ["==", ["get", "display_source"], "visual_placeholder"],
-        "#a7b5aa",
-        ["==", ["get", "display_source"], "levels_estimate"],
-        "#6a9778",
-        "#456f5d",
+        "#efcf80",
+        [
+          "match",
+          ["get", "category"],
+          ...categories.flatMap(({ id, color }) => [id, color]),
+          "#80918b",
+        ],
       ],
       "fill-extrusion-height": ["get", "display_height"],
       "fill-extrusion-base": ["get", "display_min_height"],
