@@ -1,5 +1,29 @@
 const emptyCollection = () => ({ type: "FeatureCollection", features: [] });
 
+export async function loadConstructionData(signal) {
+  const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+  const response = await fetch(`${apiBase}/api/construction`, { signal });
+  if (!response.ok) throw new Error("施工資料載入失敗");
+  const data = await response.json();
+  if (
+    !["missing", "ready"].includes(data?.data_status) ||
+    !Array.isArray(data.building_ids) ||
+    data.building_ids.some((id) => typeof id !== "string")
+  ) {
+    throw new Error("施工資料格式錯誤");
+  }
+  return data;
+}
+
+export function markConstructionBuildings(map, buildingIds) {
+  for (const id of new Set(buildingIds)) {
+    map.setFeatureState(
+      { source: "campus-buildings", id },
+      { construction: true }
+    );
+  }
+}
+
 export async function loadCampusData(signal) {
   const files = ["buildings", "roads"];
   const responses = await Promise.all(
@@ -80,7 +104,21 @@ export function addCampusLayers(map, data) {
     id: "campus-building-footprints",
     type: "line",
     source: "campus-buildings",
-    paint: { "line-color": "#345947", "line-width": 1.3, "line-opacity": 0.85 },
+    paint: {
+      "line-color": [
+        "case",
+        ["boolean", ["feature-state", "selected"], false],
+        "#e3914b",
+        "#345947",
+      ],
+      "line-width": [
+        "case",
+        ["boolean", ["feature-state", "selected"], false],
+        3,
+        1.3,
+      ],
+      "line-opacity": 0.85,
+    },
   });
   map.addLayer({
     id: "campus-building-extrusion",
@@ -89,6 +127,8 @@ export function addCampusLayers(map, data) {
     paint: {
       "fill-extrusion-color": [
         "case",
+        ["boolean", ["feature-state", "construction"], false],
+        "#c54c3e",
         ["boolean", ["feature-state", "selected"], false],
         "#e3914b",
         ["==", ["get", "display_source"], "visual_placeholder"],

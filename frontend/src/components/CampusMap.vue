@@ -9,6 +9,15 @@
     <div v-else-if="loading" class="map-message" role="status">
       載入校園地圖中…
     </div>
+    <div v-if="!loading && !error" class="construction-legend" role="status">
+      <span class="construction-key">紅色建築：有施工相關公告</span>
+      <span v-if="constructionStatus === 'loading'">施工資料載入中…</span>
+      <span v-else-if="constructionStatus === 'error'"
+        >施工資訊暫時無法取得</span
+      >
+      <span v-else-if="constructionStatus === 'missing'">尚無施工公告資料</span>
+      <span v-else>已標記 {{ constructionCount }} 棟建築</span>
+    </div>
     <button
       class="reset-view"
       type="button"
@@ -36,7 +45,12 @@ import {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
-import { addCampusLayers, loadCampusData } from "../map/layers";
+import {
+  addCampusLayers,
+  loadCampusData,
+  loadConstructionData,
+  markConstructionBuildings,
+} from "../map/layers";
 
 // Vue compiler macros are global at runtime, and ESLint 7 needs explicit globals.
 /* global defineProps, defineEmits */
@@ -45,6 +59,8 @@ const emit = defineEmits(["select", "loaded"]);
 const container = ref(null);
 const loading = ref(true);
 const error = ref("");
+const constructionStatus = ref("loading");
+const constructionCount = ref(0);
 const abortController = new AbortController();
 // MapLibre's default worker URL is relative to its entry module. Vite hashes
 // that module during build, so explicitly use the worker asset emitted by Vite.
@@ -69,6 +85,21 @@ const campusBounds = [
 function resetView() {
   if (map && !loading.value && !error.value)
     map.easeTo({ ...defaultView, duration: 800 });
+}
+
+async function loadConstruction() {
+  try {
+    const data = await loadConstructionData(abortController.signal);
+    if (abortController.signal.aborted) return;
+    const ids = [...new Set(data.building_ids)].filter((id) =>
+      buildingLookup.has(id)
+    );
+    markConstructionBuildings(map, ids);
+    constructionCount.value = ids.length;
+    constructionStatus.value = data.data_status;
+  } catch {
+    if (!abortController.signal.aborted) constructionStatus.value = "error";
+  }
 }
 
 function updateSelection(id) {
@@ -133,6 +164,7 @@ onMounted(async () => {
       addCampusLayers(map, data);
       updateSelection(props.selectedId);
       loading.value = false;
+      loadConstruction();
       emit("loaded", data.buildings.features);
       map.on("click", "campus-building-extrusion", (event) => {
         const feature = event.features?.[0];
@@ -215,6 +247,30 @@ onBeforeUnmount(() => {
   background: white;
   color: #294532;
   box-shadow: 0 4px 20px #0002;
+}
+.construction-legend {
+  position: absolute;
+  right: 16px;
+  bottom: 40px;
+  display: grid;
+  gap: 6px;
+  max-width: calc(100% - 32px);
+  padding: 12px;
+  border: 1px solid #dfe9dc;
+  border-radius: 8px;
+  background: #fffffff2;
+  color: #20372d;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.construction-key::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  background: #c54c3e;
 }
 .map-credit {
   position: absolute;
