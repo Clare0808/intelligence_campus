@@ -20,6 +20,7 @@
             :selected-id="selectedId"
             @loaded="onLoaded"
             @select="onSelect"
+            @reset="selectedId = ''"
           />
         </div>
       </section>
@@ -30,9 +31,6 @@
         aria-label="校園地點分類側邊欄"
         :inert="!sidebarOpen"
       >
-        <label class="search-label" for="building-search"
-          >搜尋校園地點名稱</label
-        >
         <input
           id="building-search"
           v-model="query"
@@ -56,8 +54,7 @@
               >
                 <span>{{ group.label }}</span>
                 <span class="category-actions">
-                  <span>{{ group.features.length }}</span>
-                  <span class="category-chevron" aria-hidden="true">⌄</span>
+                  <span class="category-chevron" aria-hidden="true">▼</span>
                 </span>
               </button>
             </h2>
@@ -73,7 +70,7 @@
                 type="button"
                 @click="onSelect(building.properties.id)"
               >
-                {{ building.properties.name }} <span aria-hidden="true">↗</span>
+                {{ building.properties.name }} <span aria-hidden="true"></span>
               </button>
             </div>
           </section>
@@ -82,31 +79,9 @@
           </p>
         </div>
         <div v-if="selectedBuilding" class="details" aria-live="polite">
-          <span class="eyebrow">{{ selectedCategory?.label ?? "建築" }} / 地點資訊</span>
+          <span class="eyebrow">{{ selectedCategory?.label ?? "建築" }}</span>
           <h2>{{ selectedBuilding.properties.name || "未命名建築" }}</h2>
-          <p v-if="selectedBuilding.properties.display_source !== 'non_building'">
-            高度：{{ heightDescription(selectedBuilding.properties) }}
-          </p>
-          <p v-if="selectedBuilding.properties.display_source !== 'non_building'">
-            樓層：{{
-              selectedBuilding.properties.building_levels ?? "OSM 未提供"
-            }}
-          </p>
-          <a
-            v-if="selectedBuilding.properties.osm_url"
-            :href="selectedBuilding.properties.osm_url"
-            target="_blank"
-            rel="noopener noreferrer"
-            >在 OpenStreetMap 檢視資料 ↗</a
-          >
         </div>
-        <a
-          class="reference"
-          :href="`${baseUrl}ncu-campus-reference.jpg`"
-          target="_blank"
-          rel="noopener noreferrer"
-          >查看中央大學官方校園導覽圖片 ↗</a
-        >
       </aside>
       <button
         class="sidebar-toggle"
@@ -117,7 +92,7 @@
         :aria-expanded="sidebarOpen"
         @click="sidebarOpen = !sidebarOpen"
       >
-        {{ sidebarOpen ? "‹" : "›" }}
+        {{ sidebarOpen ? "◀" : "▶" }}
       </button>
     </div>
   </main>
@@ -126,7 +101,6 @@
 import { computed, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
 import { categories } from "../map/categories";
-const baseUrl = import.meta.env.BASE_URL;
 const buildings = ref([]);
 const selectedId = ref("");
 const query = ref("");
@@ -171,26 +145,22 @@ function onSelect(id) {
   selectedId.value = id;
   sidebarOpen.value = true;
 }
-function heightDescription(properties) {
-  if (properties.display_source === "osm")
-    return `${properties.display_height} 公尺（OSM 高度標籤）`;
-  if (properties.display_source === "levels_estimate")
-    return `視覺推估約 ${properties.display_height} 公尺（${
-      properties.building_levels
-    } 層 × 3 公尺）`;
-  return "未知（地圖以 6 公尺示意顯示，不代表真實高度）";
-}
 </script>
 <style scoped>
 .campus-page {
+  --panel: rgba(9, 27, 49, 0.97);
+  --panel-soft: rgba(12, 38, 66, 0.96);
+  --line: #35678a;
+  --glow: #58c8fa;
+  --muted: #a2bfd2;
   height: 100vh;
   height: 100dvh;
-  background: #f7f8f4;
-  color: #20372d;
+  background: #071522;
+  color: #e5f6ff;
 }
 .reference,
 .details a {
-  color: #285743;
+  color: #72e7f5;
 }
 .page-body {
   position: relative;
@@ -198,41 +168,53 @@ function heightDescription(properties) {
   height: 100%;
   overflow: hidden;
 }
+.page-body::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(5, 17, 37, 0.12), transparent 48%);
+  content: "";
+  pointer-events: none;
+}
 .sidebar {
   position: absolute;
   z-index: 2;
-  top: 16px;
-  bottom: 16px;
-  left: 16px;
-  width: min(340px, calc(100% - 56px));
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(350px, calc(100% - 40px));
   overflow-y: auto;
-  padding: 20px;
-  border: 1px solid #dfe9dc;
-  border-radius: 12px;
-  background: #f7f8f4;
-  box-shadow: 0 12px 35px #26493338;
+  padding: 22px;
+  border: 0;
+  border-right: 1px solid #35678a66;
+  border-radius: 0;
+  background: linear-gradient(90deg, #091b31 0%, #091b31f2 55%, #091b31b3 82%, #091b3133 100%);
   transition: transform 0.25s ease, visibility 0.25s ease;
+  scrollbar-color: #33778b #0a1b2b;
 }
 .sidebar-closed {
   visibility: hidden;
-  transform: translateX(calc(-100% - 16px));
+  transform: translateX(-100%);
 }
 .sidebar-toggle {
-  border: 1px solid #dfe9dc;
-  background: white;
-  color: #285743;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--glow);
   cursor: pointer;
   position: absolute;
   z-index: 3;
   top: 50%;
-  left: calc(16px + min(340px, 100% - 56px));
-  width: 32px;
-  height: 56px;
+  left: min(350px, 100% - 40px);
+  width: 34px;
+  height: 64px;
   transform: translateY(-50%);
-  border-radius: 0 8px 8px 0;
-  box-shadow: 4px 2px 12px #26493326;
-  font-size: 26px;
-  transition: left 0.25s ease;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 5px 0 20px #06101d99;
+  font-size: 18px;
+  transition: left 0.25s ease, background 0.2s ease;
+}
+.sidebar-toggle:hover {
+  background: #17416b;
 }
 .sidebar-toggle-closed {
   left: 0;
@@ -243,79 +225,102 @@ function heightDescription(properties) {
   letter-spacing: -0.04em;
 }
 .sidebar h1 em {
-  color: #568467;
+  color: var(--glow);
   font-style: normal;
 }
 .sidebar > p {
   font-size: 13px;
   line-height: 1.9;
-  color: #647d6a;
+  color: var(--muted);
 }
 .eyebrow {
   font-size: 10px;
   letter-spacing: 0.12em;
   font-weight: 700;
-  color: #689076;
+  color: var(--glow);
 }
 .search-label {
   display: block;
-  margin-top: 25px;
-  margin-bottom: 8px;
+  margin-top: 8px;
+  margin-bottom: 10px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #a8d6e6;
 }
 input {
   width: 100%;
-  border: 1px solid #cbd8cc;
-  padding: 11px;
-  border-radius: 8px;
-  background: white;
+  border: 1px solid var(--line);
+  padding: 12px 13px;
+  border-radius: 3px;
+  outline: none;
+  background: #0b2946;
+  color: #effbff;
+  caret-color: var(--glow);
+}
+input::placeholder {
+  color: #8daabb;
+}
+input:focus-visible {
+  border-color: var(--glow);
+  box-shadow: 0 0 0 2px #58c8fa33;
 }
 .list {
   overflow-y: auto;
   max-height: min(420px, 50vh);
-  margin: 8px 0 15px;
-  border: 1px solid #e2e9df;
-  border-radius: 8px;
-  background: white;
+  margin: 14px 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #0c2540;
+  scrollbar-color: #33778b #0a1b2b;
 }
 .category-heading {
   position: sticky;
   top: 0;
   z-index: 1;
   margin: 0;
-  background: #fff;
+  background: #102f50;
 }
 .category-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 9px 12px;
-  background: #fff;
+  padding: 11px 13px;
+  background: #123759;
   border: 0;
-  border-bottom: 1px solid #eef1ea;
-  color: var(--category-color);
-  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--category-color);
+  color: #e5f6ff;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.08em;
   text-align: left;
   cursor: pointer;
 }
 .category-toggle:hover,
 .category-toggle:focus-visible {
-  background: #f4f7f3;
+  background: #1a4b75;
+}
+.category-toggle:focus-visible,
+.building-row:focus-visible,
+.sidebar-toggle:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: -2px;
 }
 .category-actions {
   display: flex;
   align-items: center;
   gap: 9px;
   font-size: 11px;
+  color: #8edce9;
 }
 .category-chevron {
   display: inline-block;
-  font-size: 17px;
+  font-size: 14px;
   line-height: 1;
-  transition: transform 0.2s;
+  transition: all 0.2s;
+  transform: rotate(0deg);
 }
 .category-toggle[aria-expanded="false"] .category-chevron {
   transform: rotate(-90deg);
@@ -325,43 +330,52 @@ input {
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border: 0;
-  border-bottom: 1px solid #eef1ea;
-  background: white;
-  color: #314b3b;
+  border-bottom: 1px solid #224866;
+  background: #0c2540;
+  color: #dceef6;
   text-align: left;
   cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+.building-row span {
+  color: #6bcbdc;
 }
 .building-row:hover,
 .building-row.active {
-  background: #eef2ed;
+  background: #194d73;
+  box-shadow: inset 3px 0 0 var(--glow);
 }
 .empty {
   padding: 10px;
   font-size: 12px;
+  color: var(--muted);
 }
 .details {
-  padding: 15px;
-  background: white;
-  border: 1px solid #dfe9dc;
-  border-radius: 8px;
+  padding: 17px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 3px;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 .details h2 {
   margin: 8px 0;
   font-size: 18px;
+  color: #f3fcff;
 }
 .details a {
   overflow-wrap: anywhere;
+  text-decoration-color: #72e7f599;
 }
 .notice {
   padding: 12px;
   margin: 15px 0;
-  background: #eef3e9;
-  border-radius: 8px;
-  color: #4f674f;
+  background: #102e4d;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: #b4d5e4;
   font-size: 11px;
   line-height: 1.8;
 }
@@ -372,7 +386,7 @@ input {
   position: relative;
   width: 100%;
   height: 100%;
-  background: white;
+  background: #071522;
 }
 .viewer-top,
 .viewer-bottom {
@@ -380,9 +394,10 @@ input {
   z-index: 1;
   right: 16px;
   padding: 9px 12px;
-  border-radius: 8px;
-  background: #ffffffed;
-  color: #3b6248;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+  color: var(--glow);
   font-size: 11px;
   font-weight: 700;
   pointer-events: none;
@@ -393,7 +408,7 @@ input {
 }
 .viewer-bottom {
   bottom: 32px;
-  color: #819184;
+  color: var(--muted);
   font-size: 10px;
 }
 .map-area {
@@ -402,13 +417,10 @@ input {
 }
 @media (max-width: 520px) {
   .sidebar {
-    top: 8px;
-    bottom: 8px;
-    left: 8px;
-    width: min(340px, calc(100% - 48px));
+    width: min(340px, calc(100% - 40px));
   }
   .sidebar-toggle {
-    left: calc(8px + min(340px, 100% - 48px));
+    left: min(340px, 100% - 40px);
   }
   .sidebar-toggle-closed {
     left: 0;

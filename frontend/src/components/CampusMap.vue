@@ -41,7 +41,7 @@ import { addCampusLayers, loadCampusData, prepareBuildings } from "../map/layers
 // Vue compiler macros are global at runtime, and ESLint 7 needs explicit globals.
 /* global defineProps, defineEmits */
 const props = defineProps({ selectedId: { type: String, default: "" } });
-const emit = defineEmits(["select", "loaded"]);
+const emit = defineEmits(["select", "loaded", "reset"]);
 const container = ref(null);
 const loading = ref(true);
 const error = ref("");
@@ -66,9 +66,37 @@ const campusBounds = [
   [121.1980519, 24.9722322],
 ];
 
+function styleBasemap(mapInstance) {
+  // Recolor the existing vector style only; all sources and feature geometry stay intact.
+  const colors = {
+    background: "#071522",
+    water: "#0c3957",
+    waterway: "#146087",
+    landuse_park: "#103348",
+    landcover_wood: "#103348",
+    landcover_grass: "#12344b",
+  };
+  for (const layer of mapInstance.getStyle().layers || []) {
+    if (layer.type === "symbol" || layer.type === "fill-extrusion") {
+      mapInstance.setLayoutProperty(layer.id, "visibility", "none");
+    } else if (colors[layer.id] && layer.type === "background") {
+      mapInstance.setPaintProperty(layer.id, "background-color", colors[layer.id]);
+    } else if (colors[layer.id] && layer.type === "fill") {
+      mapInstance.setPaintProperty(layer.id, "fill-color", colors[layer.id]);
+    } else if (colors[layer.id] && layer.type === "line") {
+      mapInstance.setPaintProperty(layer.id, "line-color", colors[layer.id]);
+    } else if (layer.id.startsWith("road_") && layer.type === "line") {
+      mapInstance.setPaintProperty(layer.id, "line-color", "#245072");
+    }
+  }
+}
+
 function resetView() {
-  if (map && !loading.value && !error.value)
+  if (map && !loading.value && !error.value) {
+    updateSelection("");
+    emit("reset");
     map.easeTo({ ...defaultView, duration: 800 });
+  }
 }
 
 function updateSelection(id) {
@@ -112,7 +140,7 @@ onMounted(async () => {
     );
     map = new Map({
       container: container.value,
-      style: "https://tiles.openfreemap.org/styles/positron",
+      style: "https://tiles.openfreemap.org/styles/dark",
       ...defaultView,
       minZoom: 15,
       maxZoom: 18,
@@ -126,11 +154,7 @@ onMounted(async () => {
     );
     map.addControl(new ScaleControl({ unit: "metric" }), "bottom-left");
     map.on("load", () => {
-      // Hide basemap labels and its own building extrusions; keep our campus layers.
-      for (const layer of map.getStyle().layers || []) {
-        if (layer.type === "symbol" || layer.type === "fill-extrusion")
-          map.setLayoutProperty(layer.id, "visibility", "none");
-      }
+      styleBasemap(map);
       addCampusLayers(map, data);
       updateSelection(props.selectedId);
       loading.value = false;
@@ -183,15 +207,14 @@ onBeforeUnmount(() => {
   width: 29px;
   height: 29px;
   padding: 5px;
-  border: 0;
-  border-radius: 4px;
-  background: white;
-  color: #333;
-  box-shadow: 0 0 0 2px #0000001a;
+  border: 1px solid #35678a;
+  border-radius: 3px;
+  background: #102f50;
+  color: #73d9ff;
   cursor: pointer;
 }
 .reset-view:hover:not(:disabled) {
-  background: #f2f2f2;
+  background: #1a4b75;
 }
 .reset-view:disabled {
   opacity: 0.6;
@@ -212,10 +235,32 @@ onBeforeUnmount(() => {
   left: 16px;
   max-width: 65%;
   padding: 12px;
-  border-radius: 8px;
-  background: white;
-  color: #294532;
-  box-shadow: 0 4px 20px #0002;
+  border: 1px solid #35678a;
+  border-radius: 3px;
+  background: rgba(9, 27, 49, 0.97);
+  color: #dceef6;
+  box-shadow: 0 4px 20px #07182777;
+}
+.map-shell :deep(.maplibregl-ctrl-group) {
+  border: 1px solid #35678a;
+  border-radius: 3px;
+  background: #102f50;
+  box-shadow: 0 4px 18px #020b1877;
+}
+.map-shell :deep(.maplibregl-ctrl-group button) {
+  background-color: transparent;
+  border-color: #35678a;
+}
+.map-shell :deep(.maplibregl-ctrl-group button:hover) {
+  background-color: #1a4b75;
+}
+.map-shell :deep(.maplibregl-ctrl-group button span) {
+  filter: invert(1) sepia(1) saturate(3) hue-rotate(160deg);
+}
+.map-shell :deep(.maplibregl-ctrl-scale) {
+  border-color: #73d9ff;
+  background: #102f50e8;
+  color: #dceef6;
 }
 .map-credit {
   position: absolute;

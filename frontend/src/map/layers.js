@@ -90,8 +90,8 @@ export function addCampusLayers(map, data) {
     type: "line",
     source: "campus-roads",
     paint: {
-      "line-color": "#d0905a",
-      "line-opacity": 0.75,
+      "line-color": "#48c4df",
+      "line-opacity": 0.8,
       "line-width": ["interpolate", ["linear"], ["zoom"], 14, 1, 17, 3],
     },
   });
@@ -110,10 +110,10 @@ export function addCampusLayers(map, data) {
         "match",
         ["get", "category"],
         ...categories.flatMap(({ id, color }) => [id, color]),
-        "#80918b",
+        "#7bd4e5",
       ],
-      "line-width": 1.3,
-      "line-opacity": 0.85,
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.4, 18, 2.4],
+      "line-opacity": 1,
     },
   });
   map.addLayer({
@@ -124,17 +124,17 @@ export function addCampusLayers(map, data) {
       "fill-extrusion-color": [
         "case",
         ["boolean", ["feature-state", "selected"], false],
-        "#efcf80",
+        "#44f3ff",
         [
           "match",
           ["get", "category"],
           ...categories.flatMap(({ id, color }) => [id, color]),
-          "#80918b",
+          "#557785",
         ],
       ],
       "fill-extrusion-height": ["get", "display_height"],
       "fill-extrusion-base": ["get", "display_min_height"],
-      "fill-extrusion-opacity": 0.87,
+      "fill-extrusion-opacity": 0.94,
     },
   });
 }

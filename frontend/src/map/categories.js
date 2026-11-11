@@ -1,10 +1,10 @@
 export const categories = [
-  { id: "administration", label: "行政", color: "#8759bb" },
-  { id: "academic", label: "系所", color: "#d5a523" },
-  { id: "dormitory", label: "宿舍", color: "#4589c9" },
-  { id: "sports", label: "體育", color: "#d65b58" },
-  { id: "life", label: "生活", color: "#4b9a69" },
-  { id: "food", label: "美食", color: "#e28a38" },
+  { id: "administration", label: "行政", color: "#c99aff" },
+  { id: "academic", label: "系所", color: "#ffde83" },
+  { id: "dormitory", label: "宿舍", color: "#85c4ff" },
+  { id: "sports", label: "體育", color: "#ff9190" },
+  { id: "life", label: "生活", color: "#8bffa3" },
+  { id: "food", label: "美食", color: "#ffbd80" },
 ];
 
 const namesByCategory = {
