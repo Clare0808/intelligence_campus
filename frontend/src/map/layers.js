@@ -1,4 +1,16 @@
+import { categories, categoryForName } from "./categories.js";
+
 const emptyCollection = () => ({ type: "FeatureCollection", features: [] });
+
+const metersPerFloor = 3;
+const nonBuildingDisplayHeight = 0.2;
+
+function positiveNumber(value) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  if (typeof value === "string" && !value.trim()) return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
 
 export async function loadConstructionData(signal) {
   const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
@@ -48,33 +60,46 @@ export async function loadCampusData(signal) {
 export function prepareBuildings(collection) {
   return {
     ...collection,
-    features: collection.features.map((feature) => {
+    features: collection.features.map((feature, index) => {
       const {
         height,
         min_height: minHeight,
         building_levels: levels,
       } = feature.properties;
+      const measuredHeight = positiveNumber(height);
+      const floorCount = positiveNumber(levels);
+      const baseHeight = positiveNumber(minHeight);
+      const isNonBuilding =
+        levels === 0 ||
+        levels === "0" ||
+        feature.properties.name === "排球場（小榕樹）";
+      const category = categoryForName(feature.properties.name);
       // 3 m / floor is only a visual estimate, not surveyed height.
       // Without any height evidence, 6 m is strictly a display placeholder.
       const displayHeight =
-        height !== null && Number.isFinite(height)
-          ? height
-          : levels !== null && Number.isFinite(levels)
-          ? levels * 3
+        isNonBuilding
+          ? nonBuildingDisplayHeight
+          : measuredHeight !== null
+          ? measuredHeight
+          : floorCount !== null
+          ? floorCount * metersPerFloor
           : 6;
       const displaySource =
-        height !== null && Number.isFinite(height)
+        isNonBuilding
+          ? "non_building"
+          : measuredHeight !== null
           ? "osm"
-          : levels !== null && Number.isFinite(levels)
+          : floorCount !== null
           ? "levels_estimate"
           : "visual_placeholder";
       return {
         ...feature,
         properties: {
           ...feature.properties,
+          id: feature.properties.id ?? `local/building-${index}`,
+          category,
           display_height: displayHeight,
-          display_min_height:
-            minHeight !== null && Number.isFinite(minHeight) ? minHeight : 0,
+          display_min_height: isNonBuilding ? 0 : baseHeight ?? 0,
           display_source: displaySource,
         },
       };
@@ -106,17 +131,23 @@ export function addCampusLayers(map, data) {
     source: "campus-buildings",
     paint: {
       "line-color": [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        "#e3914b",
-        "#345947",
-      ],
-      "line-width": [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        3,
-        1.3,
-      ],
+"line-color": [
+  "case",
+  ["boolean", ["feature-state", "selected"], false],
+  "#e3914b",
+  [
+    "match",
+    ["get", "category"],
+    ...categories.flatMap(({ id, color }) => [id, color]),
+    "#80918b",
+  ],
+],
+"line-width": [
+  "case",
+  ["boolean", ["feature-state", "selected"], false],
+  3,
+  1.3,
+],
       "line-opacity": 0.85,
     },
   });
@@ -130,12 +161,13 @@ export function addCampusLayers(map, data) {
         ["boolean", ["feature-state", "construction"], false],
         "#c54c3e",
         ["boolean", ["feature-state", "selected"], false],
-        "#e3914b",
-        ["==", ["get", "display_source"], "visual_placeholder"],
-        "#a7b5aa",
-        ["==", ["get", "display_source"], "levels_estimate"],
-        "#6a9778",
-        "#456f5d",
+        "#efcf80",
+        [
+          "match",
+          ["get", "category"],
+          ...categories.flatMap(({ id, color }) => [id, color]),
+          "#80918b",
+        ],
       ],
       "fill-extrusion-height": ["get", "display_height"],
       "fill-extrusion-base": ["get", "display_min_height"],

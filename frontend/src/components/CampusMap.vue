@@ -48,6 +48,7 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import {
   addCampusLayers,
   loadCampusData,
+  prepareBuildings,
   loadConstructionData,
   markConstructionBuildings,
 } from "../map/layers";
@@ -137,12 +138,13 @@ onMounted(async () => {
   try {
     const data = await loadCampusData(abortController.signal);
     if (abortController.signal.aborted) return;
+    const preparedBuildings = prepareBuildings(data.buildings);
     buildingLookup = new globalThis.Map(
-      data.buildings.features.map((feature) => [feature.properties.id, feature])
+      preparedBuildings.features.map((feature) => [feature.properties.id, feature])
     );
     map = new Map({
       container: container.value,
-      style: "https://tiles.openfreemap.org/styles/liberty",
+      style: "https://tiles.openfreemap.org/styles/positron",
       ...defaultView,
       minZoom: 15,
       maxZoom: 18,
@@ -156,16 +158,16 @@ onMounted(async () => {
     );
     map.addControl(new ScaleControl({ unit: "metric" }), "bottom-left");
     map.on("load", () => {
-      // Remove basemap's own building extrusions to avoid double rendering.
+      // Hide basemap labels and its own building extrusions; keep our campus layers.
       for (const layer of map.getStyle().layers || []) {
-        if (layer.type === "fill-extrusion")
+        if (layer.type === "symbol" || layer.type === "fill-extrusion")
           map.setLayoutProperty(layer.id, "visibility", "none");
       }
       addCampusLayers(map, data);
       updateSelection(props.selectedId);
       loading.value = false;
-      loadConstruction();
-      emit("loaded", data.buildings.features);
+loadConstruction();
+emit("loaded", preparedBuildings.features);
       map.on("click", "campus-building-extrusion", (event) => {
         const feature = event.features?.[0];
         if (feature) emit("select", feature.properties.id);

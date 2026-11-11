@@ -27,43 +27,73 @@
         id="building-sidebar"
         class="sidebar"
         :class="{ 'sidebar-closed': !sidebarOpen }"
-        aria-label="OSM 建築搜尋側邊欄"
+        aria-label="校園地點分類側邊欄"
         :inert="!sidebarOpen"
       >
         <label class="search-label" for="building-search"
-          >搜尋 OSM 建築名稱</label
+          >搜尋校園地點名稱</label
         >
         <input
           id="building-search"
           v-model="query"
           type="search"
-          placeholder="搜尋建築…"
+          placeholder="搜尋地點…"
         />
-        <div class="list" aria-label="OSM 已命名建築">
-          <button
-            v-for="building in filteredBuildings"
-            :key="building.properties.id"
-            class="building-row"
-            :class="{ active: selectedId === building.properties.id }"
-            type="button"
-            @click="onSelect(building.properties.id)"
+        <div class="list" aria-label="依類別排列的校園地點">
+          <section
+            v-for="group in groupedBuildings"
+            :key="group.id"
+            class="category-group"
           >
-            {{ building.properties.name }} <span aria-hidden="true">↗</span>
-          </button>
-          <p v-if="!filteredBuildings.length" class="empty">
-            {{ buildings.length ? "找不到符合的建築" : "載入建築資料中…" }}
+            <h2 class="category-heading">
+              <button
+                class="category-toggle"
+                :style="{ '--category-color': group.color }"
+                type="button"
+                :aria-expanded="isGroupExpanded(group.id)"
+                :aria-controls="`category-items-${group.id}`"
+                @click="toggleGroup(group.id)"
+              >
+                <span>{{ group.label }}</span>
+                <span class="category-actions">
+                  <span>{{ group.features.length }}</span>
+                  <span class="category-chevron" aria-hidden="true">⌄</span>
+                </span>
+              </button>
+            </h2>
+            <div
+              :id="`category-items-${group.id}`"
+              v-show="isGroupExpanded(group.id)"
+            >
+              <button
+                v-for="building in group.features"
+                :key="building.properties.id"
+                class="building-row"
+                :class="{ active: selectedId === building.properties.id }"
+                type="button"
+                @click="onSelect(building.properties.id)"
+              >
+                {{ building.properties.name }} <span aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </section>
+          <p v-if="!groupedBuildings.length" class="empty">
+            {{ buildings.length ? "找不到符合的地點" : "載入地點資料中…" }}
           </p>
         </div>
         <div v-if="selectedBuilding" class="details" aria-live="polite">
-          <span class="eyebrow">BUILDING / 建築資訊</span>
+          <span class="eyebrow">{{ selectedCategory?.label ?? "建築" }} / 地點資訊</span>
           <h2>{{ selectedBuilding.properties.name || "未命名建築" }}</h2>
-          <p>高度：{{ heightDescription(selectedBuilding.properties) }}</p>
-          <p>
+          <p v-if="selectedBuilding.properties.display_source !== 'non_building'">
+            高度：{{ heightDescription(selectedBuilding.properties) }}
+          </p>
+          <p v-if="selectedBuilding.properties.display_source !== 'non_building'">
             樓層：{{
               selectedBuilding.properties.building_levels ?? "OSM 未提供"
             }}
           </p>
           <a
+            v-if="selectedBuilding.properties.osm_url"
             :href="selectedBuilding.properties.osm_url"
             target="_blank"
             rel="noopener noreferrer"
@@ -95,37 +125,57 @@
 <script setup>
 import { computed, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
+import { categories } from "../map/categories";
 const baseUrl = import.meta.env.BASE_URL;
 const buildings = ref([]);
 const selectedId = ref("");
 const query = ref("");
 const sidebarOpen = ref(true);
-const filteredBuildings = computed(() =>
-  buildings.value
-    .filter((feature) =>
-      feature.properties.name
-        ?.toLowerCase()
-        .includes(query.value.trim().toLowerCase())
-    )
-    .sort((a, b) =>
-      a.properties.name.localeCompare(b.properties.name, "zh-Hant")
-    )
-);
+const collapsedGroups = ref(new Set());
+function isGroupExpanded(id) {
+  return !!query.value.trim() || !collapsedGroups.value.has(id);
+}
+function toggleGroup(id) {
+  const next = new Set(collapsedGroups.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  collapsedGroups.value = next;
+}
+const groupedBuildings = computed(() => {
+  const search = query.value.trim().toLowerCase();
+  return categories
+    .map((category) => ({
+      ...category,
+      features: buildings.value
+        .filter(
+          (feature) =>
+            feature.properties.category === category.id &&
+            feature.properties.name?.toLowerCase().includes(search)
+        )
+        .sort((a, b) =>
+          a.properties.name.localeCompare(b.properties.name, "zh-Hant")
+        ),
+    }))
+    .filter((category) => category.features.length);
+});
 const selectedBuilding = computed(() =>
   buildings.value.find((feature) => feature.properties.id === selectedId.value)
 );
+const selectedCategory = computed(() =>
+  categories.find((category) => category.id === selectedBuilding.value?.properties.category)
+);
 function onLoaded(features) {
-  buildings.value = features;
+  buildings.value = features.filter((feature) => feature.properties.name);
 }
 function onSelect(id) {
   selectedId.value = id;
   sidebarOpen.value = true;
 }
 function heightDescription(properties) {
-  if (properties.height !== null)
-    return `${properties.height} 公尺（OSM 高度標籤）`;
-  if (properties.building_levels !== null)
-    return `OSM 未提供；視覺推估約 ${properties.building_levels * 3} 公尺（${
+  if (properties.display_source === "osm")
+    return `${properties.display_height} 公尺（OSM 高度標籤）`;
+  if (properties.display_source === "levels_estimate")
+    return `視覺推估約 ${properties.display_height} 公尺（${
       properties.building_levels
     } 層 × 3 公尺）`;
   return "未知（地圖以 6 公尺示意顯示，不代表真實高度）";
@@ -223,11 +273,52 @@ input {
 }
 .list {
   overflow-y: auto;
-  max-height: min(260px, 35vh);
+  max-height: min(420px, 50vh);
   margin: 8px 0 15px;
   border: 1px solid #e2e9df;
   border-radius: 8px;
   background: white;
+}
+.category-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  background: #fff;
+}
+.category-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  background: #fff;
+  border: 0;
+  border-bottom: 1px solid #eef1ea;
+  color: var(--category-color);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.category-toggle:hover,
+.category-toggle:focus-visible {
+  background: #f4f7f3;
+}
+.category-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+}
+.category-chevron {
+  display: inline-block;
+  font-size: 17px;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+.category-toggle[aria-expanded="false"] .category-chevron {
+  transform: rotate(-90deg);
 }
 .building-row {
   display: flex;
@@ -244,7 +335,7 @@ input {
 }
 .building-row:hover,
 .building-row.active {
-  background: #e4eee1;
+  background: #eef2ed;
 }
 .empty {
   padding: 10px;
@@ -327,7 +418,7 @@ input {
     display: none;
   }
   .list {
-    max-height: 30vh;
+    max-height: 40vh;
   }
 }
 </style>
