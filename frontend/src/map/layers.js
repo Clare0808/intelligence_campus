@@ -12,6 +12,30 @@ function positiveNumber(value) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+export async function loadConstructionData(signal) {
+  const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+  const response = await fetch(`${apiBase}/api/construction`, { signal });
+  if (!response.ok) throw new Error("施工資料載入失敗");
+  const data = await response.json();
+  if (
+    !["missing", "ready"].includes(data?.data_status) ||
+    !Array.isArray(data.building_ids) ||
+    data.building_ids.some((id) => typeof id !== "string")
+  ) {
+    throw new Error("施工資料格式錯誤");
+  }
+  return data;
+}
+
+export function markConstructionBuildings(map, buildingIds) {
+  for (const id of new Set(buildingIds)) {
+    map.setFeatureState(
+      { source: "campus-buildings", id },
+      { construction: true }
+    );
+  }
+}
+
 export async function loadCampusData(signal) {
   const files = ["buildings", "roads"];
   const responses = await Promise.all(
@@ -52,22 +76,20 @@ export function prepareBuildings(collection) {
       const category = categoryForName(feature.properties.name);
       // 3 m / floor is only a visual estimate, not surveyed height.
       // Without any height evidence, 6 m is strictly a display placeholder.
-      const displayHeight =
-        isNonBuilding
-          ? nonBuildingDisplayHeight
-          : measuredHeight !== null
-          ? measuredHeight
-          : floorCount !== null
-          ? floorCount * metersPerFloor
-          : 6;
-      const displaySource =
-        isNonBuilding
-          ? "non_building"
-          : measuredHeight !== null
-          ? "osm"
-          : floorCount !== null
-          ? "levels_estimate"
-          : "visual_placeholder";
+      const displayHeight = isNonBuilding
+        ? nonBuildingDisplayHeight
+        : measuredHeight !== null
+        ? measuredHeight
+        : floorCount !== null
+        ? floorCount * metersPerFloor
+        : 6;
+      const displaySource = isNonBuilding
+        ? "non_building"
+        : measuredHeight !== null
+        ? "osm"
+        : floorCount !== null
+        ? "levels_estimate"
+        : "visual_placeholder";
       return {
         ...feature,
         properties: {
@@ -123,6 +145,8 @@ export function addCampusLayers(map, data) {
     paint: {
       "fill-extrusion-color": [
         "case",
+        ["boolean", ["feature-state", "construction"], false],
+        "#c54c3e",
         ["boolean", ["feature-state", "selected"], false],
         "#44f3ff",
         [

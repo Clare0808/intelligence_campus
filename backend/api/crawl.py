@@ -1,65 +1,8 @@
-import requests
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 import time
 import json
 from datetime import date
 from calendar import monthrange
 import os
-from dotenv import load_dotenv
-from openai import OpenAI
-
-# 建立公告資訊抽取函式
-def extract_announcement(announcement):
-
-    user_prompt = f"""
-        請分析以下中央大學校園公告。
-
-        公告 ID：
-        {announcement["Id"]}
-
-        發布單位：
-        {announcement["PublishDepartment"]}
-
-        發布日期：
-        {announcement["PublishDate"]}
-
-        公告標題：
-        {announcement["NewsTitle"]}
-
-        注意：
-        目前提供的資料只有公告標題與基本資訊，
-        不包含公告內文。
-        請勿假設你已經讀取公告內文。
-    """
-
-    response = openai_client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT
-            },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ],
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": "school_construction_announcement",
-                "strict": True,
-                "schema": OUTPUT_SCHEMA
-            }
-        },
-        temperature=0
-    )
-
-    result = json.loads(response.choices[0].message.content)
-
-    return result
 
 URL = "https://www.oga.ncu.edu.tw/f3ec03a8"
 
@@ -80,81 +23,6 @@ DATA = {
     "lang": "zh",
     "isFrontend": True
 }
-
-# 設定 Chrome Driver 路徑
-chrome_driver_path = "C:\\Users\\User\\Documents\\chromedriver-win64\\chromedriver.exe"
-service = Service(chrome_driver_path)
-options = Options()
-
-driver = webdriver.Chrome(service=service, options=options)  # 打開 Chrome 瀏覽器
-
-driver.get(URL) # 打開目標網站
-
-time.sleep(3)
-
-# 取得所有 cookies
-cookies = driver.get_cookies()
-
-# 關閉瀏覽器
-driver.quit()
-
-# 轉換成 requests 可用的格式
-cookies_dict = {cookie["name"]: cookie["value"] for cookie in cookies}
-
-response = requests.post(
-   API,
-   headers=HEADERS, 
-   json=DATA,
-   cookies=cookies_dict,
-   verify=False
-).text
-
-raw_data = json.loads(response)
-
-clean_data_list = []
-
-today = date.today()
-
-month_offset = today.month - 6
-
-if month_offset > 0:
-    target_month = month_offset
-    target_year = today.year
-else:
-    # 跨到上一年的處理
-    target_month = month_offset + 12 # +12 換算成上一年的對應月份
-    target_year = today.year - 1
-
-# 算出 6 個月前的同一天日期
-six_months_ago = date(
-    target_year, 
-    target_month, 
-    min(today.day, monthrange(target_year, target_month)[1])
-)
-
-for data in raw_data :
-    publish_date = date.fromisoformat(data["publishStartDate"])
-    if not six_months_ago <= publish_date <= today:
-        continue
-
-    data_list = {}
-
-    data_list["Id"] = data["uid"]
-    data_list["PublishDepartment"] = data["teamEntity"]["name"]
-    data_list["PublishDate"] = data["publishStartDate"]
-    data_list["NewsTitle"] = data["name"]
-    data_list["NewsContent"] = data["content"]
-
-    clean_data_list.append(data_list)
-
-load_dotenv()
-
-openai_client = OpenAI(
-    base_url=os.environ["AZURE_OPENAI_ENDPOINT"],
-    api_key=os.environ["AZURE_OPENAI_API_KEY"],
-)
-
-MODEL = os.environ["AZURE_OPENAI_DEPLOYMENT"]
 
 # 定義 JSON Schema
 OUTPUT_SCHEMA = {
@@ -291,34 +159,189 @@ SYSTEM_PROMPT = """
     請嚴格遵守指定的 JSON Schema。
 """
 
-processed_data = []
+# 建立公告資訊抽取函式
+def extract_announcement(announcement, openai_client, model):
 
-for index, announcement in enumerate(clean_data_list):
-    try:
-        extracted_data = extract_announcement(announcement)
+    user_prompt = f"""
+        請分析以下中央大學校園公告。
 
-        # 保留原始公告資訊
-        result = {
-            **announcement,
-            **extracted_data,
-            "processing_status": "success"
-        }
+        公告 ID：
+        {announcement["Id"]}
 
-        processed_data.append(result)
+        發布單位：
+        {announcement["PublishDepartment"]}
 
-    except Exception as e:
-        processed_data.append({
-            **announcement,
-            "processing_status": "failed",
-            "error": str(e)
-        })
+        發布日期：
+        {announcement["PublishDate"]}
 
-file_path = "school_news_processed.json"
+        公告標題：
+        {announcement["NewsTitle"]}
 
-with open(file_path, "w", encoding="utf-8") as f:
-    json.dump(
-        processed_data,
-        f,
-        indent=4,
-        ensure_ascii=False
+        注意：
+        目前提供的資料只有公告標題與基本資訊，
+        不包含公告內文。
+        請勿假設你已經讀取公告內文。
+    """
+
+    response = openai_client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ],
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": "school_construction_announcement",
+                "strict": True,
+                "schema": OUTPUT_SCHEMA
+            }
+        },
+        temperature=0
     )
+
+    result = json.loads(response.choices[0].message.content)
+
+    return result
+
+
+def fetch_announcements():
+    """取得並清理近六個月公告；只在被呼叫時啟動瀏覽器。"""
+    import requests
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+
+    # 設定 Chrome Driver 路徑
+    chrome_driver_path = "C:\\Users\\User\\Documents\\chromedriver-win64\\chromedriver.exe"
+    service = Service(chrome_driver_path)
+    options = Options()
+
+    driver = webdriver.Chrome(service=service, options=options)  # 打開 Chrome 瀏覽器
+
+    driver.get(URL) # 打開目標網站
+
+    time.sleep(3)
+
+    # 取得所有 cookies
+    cookies = driver.get_cookies()
+
+    # 關閉瀏覽器
+    driver.quit()
+
+    # 轉換成 requests 可用的格式
+    cookies_dict = {cookie["name"]: cookie["value"] for cookie in cookies}
+
+    response = requests.post(
+       API,
+       headers=HEADERS,
+       json=DATA,
+       cookies=cookies_dict,
+       verify=False
+    ).text
+
+    raw_data = json.loads(response)
+
+    clean_data_list = []
+
+    today = date.today()
+
+    month_offset = today.month - 6
+
+    if month_offset > 0:
+        target_month = month_offset
+        target_year = today.year
+    else:
+        # 跨到上一年的處理
+        target_month = month_offset + 12 # +12 換算成上一年的對應月份
+        target_year = today.year - 1
+
+    # 算出 6 個月前的同一天日期
+    six_months_ago = date(
+        target_year,
+        target_month,
+        min(today.day, monthrange(target_year, target_month)[1])
+    )
+
+    for data in raw_data :
+        publish_date = date.fromisoformat(data["publishStartDate"])
+        if not six_months_ago <= publish_date <= today:
+            continue
+
+        data_list = {}
+
+        data_list["Id"] = data["uid"]
+        data_list["PublishDepartment"] = data["teamEntity"]["name"]
+        data_list["PublishDate"] = data["publishStartDate"]
+        data_list["NewsTitle"] = data["name"]
+        data_list["NewsContent"] = data["content"]
+
+        clean_data_list.append(data_list)
+
+    return clean_data_list
+
+
+def run_crawler():
+    """供後端呼叫，回傳 AI 整理結果；由呼叫端決定如何儲存。"""
+    from dotenv import load_dotenv
+    from openai import OpenAI
+
+    load_dotenv()
+
+    openai_client = OpenAI(
+        base_url=os.environ["AZURE_OPENAI_ENDPOINT"],
+        api_key=os.environ["AZURE_OPENAI_API_KEY"],
+    )
+
+    model = os.environ["AZURE_OPENAI_DEPLOYMENT"]
+
+    clean_data_list = fetch_announcements()
+
+    processed_data = []
+
+    for index, announcement in enumerate(clean_data_list):
+        try:
+            extracted_data = extract_announcement(announcement, openai_client, model)
+
+            # 保留原始公告資訊
+            result = {
+                **announcement,
+                **extracted_data,
+                "processing_status": "success"
+            }
+
+            processed_data.append(result)
+
+        except Exception as e:
+            processed_data.append({
+                **announcement,
+                "processing_status": "failed",
+                "error": str(e)
+            })
+
+    return processed_data
+
+
+def main():
+    """直接執行此檔時，維持原本輸出 JSON 的方式。"""
+    processed_data = run_crawler()
+
+    file_path = "school_news_processed.json"
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(
+            processed_data,
+            f,
+            indent=4,
+            ensure_ascii=False
+        )
+
+
+if __name__ == "__main__":
+    main()
