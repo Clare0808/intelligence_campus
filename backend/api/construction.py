@@ -1,10 +1,13 @@
 import json
+import logging
 import unicodedata
+from datetime import date, timedelta
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from threading import Lock
 
 import click
-from flask import jsonify
+from flask import jsonify, request
 
 from . import api_bp
 from .crawl import run_crawler
@@ -15,6 +18,8 @@ BUILDINGS_FILE = (
     Path(__file__).resolve().parents[2]
     / "frontend" / "public" / "data" / "buildings.geojson"
 )
+refresh_lock = Lock()
+logger = logging.getLogger(__name__)
 
 # 別名明確對應到目前 GeoJSON 的名稱，不使用模糊搜尋猜測建築。
 BUILDING_ALIASES = {
@@ -54,35 +59,84 @@ def match_building(name, name_index):
     return next(iter(matches)) if len(matches) == 1 else None
 
 
+def is_construction_in_next_two_weeks(construction, today):
+    """只標示施工區間與今天至 14 天後（含）重疊的建築。"""
+    if not isinstance(construction, dict):
+        return False
+    start_text = construction.get("start_date")
+    end_text = construction.get("end_date")
+    if not isinstance(start_text, str) or not isinstance(end_text, str):
+        return False
+    try:
+        start = date.fromisoformat(start_text)
+        end = date.fromisoformat(end_text)
+    except ValueError:
+        return False
+    return start <= end and start <= today + timedelta(days=14) and end >= today
+
+
+def current_date():
+    return date.today()
+
+
+def update_construction_data():
+    """執行爬蟲並以原子寫入更新公告，失敗時保留舊資料。"""
+    records = run_crawler()
+    if not isinstance(records, list) or any(not isinstance(record, dict) for record in records):
+        raise ValueError("Invalid crawler output")
+    if records and not any(
+        record.get("processing_status") == "success" for record in records
+    ):
+        raise RuntimeError("All announcements failed")
+
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    # 完整寫入暫存檔後才取代舊資料，避免 API 讀到寫入一半的 JSON。
+    temporary_path = None
+    try:
+        with NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=DATA_FILE.parent, delete=False
+        ) as temporary_file:
+            temporary_path = Path(temporary_file.name)
+            json.dump(records, temporary_file, ensure_ascii=False, indent=4)
+        temporary_path.replace(DATA_FILE)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
+    return len(records)
+
+
 @click.command("refresh-construction")
 def refresh_construction():
     """執行爬蟲與 AI 整理，更新後端使用的公告資料。"""
+    if not refresh_lock.acquire(blocking=False):
+        raise click.ClickException("公告資料正在更新中。")
     try:
-        records = run_crawler()
-        if records and not any(
-            record.get("processing_status") == "success" for record in records
-        ):
-            raise RuntimeError("All announcements failed")
-
-        DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-        # 完整寫入暫存檔後才取代舊資料，避免 API 讀到寫入一半的 JSON。
-        temporary_path = None
-        try:
-            with NamedTemporaryFile(
-                mode="w", encoding="utf-8", dir=DATA_FILE.parent, delete=False
-            ) as temporary_file:
-                temporary_path = Path(temporary_file.name)
-                json.dump(records, temporary_file, ensure_ascii=False, indent=4)
-            temporary_path.replace(DATA_FILE)
-        finally:
-            if temporary_path is not None and temporary_path.exists():
-                temporary_path.unlink()
-    except Exception:
+        count = update_construction_data()
+    except Exception as error:
+        logger.exception("Construction refresh failed")
         raise click.ClickException(
             "更新失敗，原有公告資料已保留。請確認爬蟲套件、ChromeDriver 與 Azure 設定。"
-        ) from None
+        ) from error
+    finally:
+        refresh_lock.release()
 
-    click.echo(f"公告資料已更新，共 {len(records)} 筆。")
+    click.echo(f"公告資料已更新，共 {count} 筆。")
+
+
+@api_bp.post("/construction/refresh")
+def refresh_construction_api():
+    if request.remote_addr not in ("127.0.0.1", "::1"):
+        return jsonify(message="僅允許由本機觸發公告更新。"), 403
+    if not refresh_lock.acquire(blocking=False):
+        return jsonify(message="公告資料正在更新中，請稍後再試。"), 409
+    try:
+        count = update_construction_data()
+    except Exception:
+        logger.exception("Construction refresh failed")
+        return jsonify(message="更新失敗，原有公告資料已保留。請確認後端爬蟲設定。"), 500
+    finally:
+        refresh_lock.release()
+    return jsonify(message=f"公告資料已更新，共 {count} 筆。", count=count)
 
 
 @api_bp.get("/construction")
@@ -137,10 +191,12 @@ def get_construction():
             "location_id": match_building(location.get("building"), name_index),
         }
 
+    today = current_date()
     building_ids = sorted({
         announcement["location"]["location_id"]
         for announcement in announcements
         if announcement["location"]["location_id"] is not None
+        and is_construction_in_next_two_weeks(announcement["construction"], today)
     })
     return jsonify(
         announcements=announcements, building_ids=building_ids, data_status="ready"

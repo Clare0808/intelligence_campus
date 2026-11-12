@@ -1,5 +1,5 @@
 ﻿<template>
-  <main class="campus-page">
+  <main class="campus-page" :class="{ 'theme-light': theme === 'light' }">
     <!-- <header class="header">
       <div class="identity">
         <span class="mark">中</span
@@ -13,15 +13,17 @@
         ><RouterLink to="/map">原有校園示意圖 ↗</RouterLink>
       </nav>
     </header> -->
-    <div class="page-body">
+    <div class="page-body" :inert="refreshState !== 'idle'">
       <section class="viewer" aria-label="中央大學 3D 地理地圖">
         <div class="map-area">
           <CampusMap
             :selected-id="selectedId"
+            :theme="theme"
             @loaded="onLoaded"
             @select="onSelect"
             @reset="selectedId = ''"
             @construction-loaded="onConstructionLoaded"
+            @theme-change="setTheme"
           />
         </div>
       </section>
@@ -32,6 +34,19 @@
         aria-label="校園地點分類側邊欄"
         :inert="!sidebarOpen"
       >
+        <div class="construction-refresh">
+          <button
+            class="refresh-button"
+            type="button"
+            :disabled="refreshState !== 'idle'"
+            @click="refreshConstruction"
+          >
+            {{ refreshState === "idle" ? "更新施工公告" : "正在更新施工公告…" }}
+          </button>
+          <p v-if="refreshError" role="alert">
+            {{ refreshError }}
+          </p>
+        </div>
         <input
           id="building-search"
           v-model="query"
@@ -98,9 +113,14 @@
                 地點：{{ announcement.location.raw_text }}
               </p>
               <p
-                v-if="announcement.construction?.start_date || announcement.construction?.end_date"
+                v-if="
+                  announcement.construction?.start_date ||
+                  announcement.construction?.end_date
+                "
               >
-                施工期間：{{ announcement.construction?.start_date || "未提供" }}
+                施工期間：{{
+                  announcement.construction?.start_date || "未提供"
+                }}
                 ～ {{ announcement.construction?.end_date || "未提供" }}
               </p>
               <p v-if="announcement.needs_review" class="review-note">
@@ -122,18 +142,72 @@
         {{ sidebarOpen ? "◀" : "▶" }}
       </button>
     </div>
+    <div
+      v-if="refreshState !== 'idle'"
+      ref="refreshOverlay"
+      class="refresh-overlay"
+      role="alertdialog"
+      aria-modal="true"
+      aria-label="施工公告更新狀態"
+      aria-describedby="refresh-overlay-message"
+      tabindex="-1"
+      @keydown.tab.prevent
+    >
+      <div class="refresh-overlay-content" aria-live="polite">
+        <span
+          v-if="refreshState === 'loading'"
+          class="refresh-spinner"
+          aria-hidden="true"
+        ></span>
+        <p v-if="refreshState === 'loading'" id="refresh-overlay-message">
+          正在抓取並整理施工公告，請稍候…
+        </p>
+        <p v-else id="refresh-overlay-message" class="refresh-success-message">
+          <span class="refresh-success-title">資料更新成功!</span>
+          <span>正在重新整理...</span>
+        </p>
+      </div>
+    </div>
   </main>
 </template>
 <script setup>
-import { computed, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
 import { categories } from "../map/categories";
+import { refreshConstructionData } from "../map/layers";
 const buildings = ref([]);
 const constructionAnnouncements = ref([]);
 const selectedId = ref("");
 const query = ref("");
 const sidebarOpen = ref(true);
+const theme = ref(
+  localStorage.getItem("campus-theme") === "light" ? "light" : "dark"
+);
+function setTheme(value) {
+  theme.value = value;
+  localStorage.setItem("campus-theme", value);
+}
 const collapsedGroups = ref(new Set());
+const refreshState = ref("idle");
+const refreshError = ref("");
+const refreshOverlay = ref(null);
+let reloadTimer;
+async function refreshConstruction() {
+  if (refreshState.value !== "idle") return;
+  refreshState.value = "loading";
+  refreshError.value = "";
+  await nextTick();
+  refreshOverlay.value?.focus();
+  try {
+    await refreshConstructionData();
+    refreshState.value = "success";
+    reloadTimer = window.setTimeout(() => window.location.reload(), 1500);
+  } catch (error) {
+    refreshError.value = error.message || "施工公告更新失敗，請稍後再試。";
+    refreshState.value = "idle";
+  }
+}
+onBeforeUnmount(() => window.clearTimeout(reloadTimer));
 function isGroupExpanded(id) {
   return !!query.value.trim() || !collapsedGroups.value.has(id);
 }
@@ -164,7 +238,9 @@ const selectedBuilding = computed(() =>
   buildings.value.find((feature) => feature.properties.id === selectedId.value)
 );
 const selectedCategory = computed(() =>
-  categories.find((category) => category.id === selectedBuilding.value?.properties.category)
+  categories.find(
+    (category) => category.id === selectedBuilding.value?.properties.category
+  )
 );
 const selectedAnnouncements = computed(() =>
   constructionAnnouncements.value.filter(
@@ -193,6 +269,16 @@ function onSelect(id) {
   height: 100dvh;
   background: #071522;
   color: #e5f6ff;
+}
+.campus-page.theme-light {
+  --panel: rgba(255, 255, 255, 0.96);
+  --panel-soft: rgba(255, 255, 255, 0.94);
+  --line: #b5c4cc;
+  --glow: #205b77;
+  --muted: #536774;
+  background: #f5f6f1;
+  color: #17252d;
+  color-scheme: light;
 }
 .reference,
 .details a {
@@ -224,7 +310,13 @@ function onSelect(id) {
   border: 0;
   border-right: 1px solid #35678a66;
   border-radius: 0;
-  background: linear-gradient(90deg, #091b31 0%, #091b31f2 55%, #091b31b3 82%, #091b3133 100%);
+  background: linear-gradient(
+    90deg,
+    #091b31 0%,
+    #091b31f2 55%,
+    #091b31b3 82%,
+    #091b3133 100%
+  );
   transition: transform 0.25s ease, visibility 0.25s ease;
   scrollbar-color: #33778b #0a1b2b;
 }
@@ -232,9 +324,89 @@ function onSelect(id) {
   visibility: hidden;
   transform: translateX(-100%);
 }
+.construction-refresh {
+  margin-bottom: 14px;
+}
+.refresh-button {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--glow);
+  border-radius: 3px;
+  background: #17416b;
+  color: #effbff;
+  font-weight: 700;
+}
+.refresh-button:hover:not(:disabled) {
+  background: #1a5a84;
+}
+.refresh-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.construction-refresh p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.refresh-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 16, 30, 0.82);
+  backdrop-filter: blur(6px);
+}
+.refresh-overlay-content {
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+  width: min(100%, 420px);
+  padding: 36px 24px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 18px 60px #020b18aa;
+  color: #effbff;
+  text-align: center;
+}
+.refresh-overlay-content p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.refresh-success-message {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.refresh-success-title {
+  font-size: 24px;
+  font-weight: 700;
+}
+.refresh-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #35678a;
+  border-top-color: var(--glow);
+  border-radius: 50%;
+  animation: refresh-spin 0.8s linear infinite;
+}
+@keyframes refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .refresh-spinner {
+    animation-duration: 2s;
+  }
+}
 .sidebar-toggle {
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: transparent;
   color: var(--glow);
   cursor: pointer;
   position: absolute;
@@ -247,10 +419,7 @@ function onSelect(id) {
   border-radius: 0 4px 4px 0;
   box-shadow: 5px 0 20px #06101d99;
   font-size: 18px;
-  transition: left 0.25s ease, background 0.2s ease;
-}
-.sidebar-toggle:hover {
-  background: #17416b;
+  transition: left 0.25s ease;
 }
 .sidebar-toggle-closed {
   left: 0;
@@ -476,6 +645,84 @@ input:focus-visible {
 .map-area {
   width: 100%;
   height: 100%;
+}
+.theme-light .page-body::after {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.12),
+    transparent 48%
+  );
+}
+.theme-light .viewer {
+  background: #f5f6f1;
+}
+.theme-light .sidebar {
+  border-right-color: #b5c4cc80;
+  background: linear-gradient(
+    90deg,
+    #ffffff 0%,
+    #fffffff2 55%,
+    #ffffffb3 82%,
+    #ffffff33 100%
+  );
+  scrollbar-color: #a3b8c4 #eef2f4;
+}
+.theme-light .sidebar-toggle {
+  background: #ffffffd9;
+  color: #17252d;
+  box-shadow: 5px 0 20px #364b5b30;
+}
+.theme-light .refresh-button {
+  background: #fff;
+  color: #17252d;
+}
+.theme-light input,
+.theme-light .list,
+.theme-light .category-heading,
+.theme-light .category-toggle,
+.theme-light .building-row {
+  background: #fff;
+  color: #17252d;
+}
+.theme-light input::placeholder {
+  color: #536774;
+}
+.theme-light .list {
+  scrollbar-color: #a3b8c4 #eef2f4;
+}
+.theme-light .category-toggle {
+  border-bottom-color: var(--line);
+}
+.theme-light .building-row {
+  border-bottom-color: #dce5ea;
+}
+.theme-light .refresh-button:hover:not(:disabled),
+.theme-light .category-toggle:hover,
+.theme-light .category-toggle:focus-visible,
+.theme-light .building-row:hover,
+.theme-light .building-row.active {
+  background: #deebf0;
+}
+.theme-light .category-actions,
+.theme-light .building-row span {
+  color: var(--glow);
+}
+.theme-light .details h2,
+.theme-light .refresh-overlay-content {
+  color: #17252d;
+}
+.theme-light .review-note {
+  color: #a13c2f;
+}
+.theme-light .refresh-overlay {
+  background: rgba(220, 231, 237, 0.78);
+}
+.theme-light .refresh-overlay-content {
+  box-shadow: 0 18px 60px #364b5b30;
+}
+.theme-light .refresh-spinner {
+  border-color: #c6d6de;
+  border-top-color: var(--glow);
 }
 @media (max-width: 520px) {
   .sidebar {

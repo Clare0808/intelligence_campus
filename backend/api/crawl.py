@@ -223,6 +223,11 @@ def fetch_announcements():
     service = Service(chrome_driver_path)
     options = Options()
 
+    # 避免開啟彈出視窗
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+
     driver = webdriver.Chrome(service=service, options=options)  # 打開 Chrome 瀏覽器
 
     driver.get(URL) # 打開目標網站

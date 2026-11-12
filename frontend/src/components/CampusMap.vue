@@ -1,5 +1,5 @@
 <template>
-  <div class="map-shell">
+  <div class="map-shell" :class="{ 'theme-light': theme === 'light' }">
     <div
       ref="container"
       class="map-container"
@@ -10,7 +10,7 @@
       載入校園地圖中…
     </div>
     <div v-if="!loading && !error" class="construction-legend" role="status">
-      <span class="construction-key">紅色建築：有施工相關公告</span>
+      <span class="construction-key">紅色建築：兩週內施工中或即將施工</span>
       <span v-if="constructionStatus === 'loading'">施工資料載入中…</span>
       <span v-else-if="constructionStatus === 'error'"
         >施工資訊暫時無法取得</span
@@ -31,6 +31,7 @@
         <path d="M4 5v6h6" />
       </svg>
     </button>
+    <ThemeToggle :theme="theme" @change="emit('theme-change', $event)" />
   </div>
 </template>
 
@@ -45,6 +46,7 @@ import {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
+import ThemeToggle from "./ThemeToggle.vue";
 import {
   addCampusLayers,
   loadCampusData,
@@ -55,8 +57,18 @@ import {
 
 // Vue compiler macros are global at runtime, and ESLint 7 needs explicit globals.
 /* global defineProps, defineEmits */
-const props = defineProps({ selectedId: { type: String, default: "" } });
-const emit = defineEmits(["select", "loaded", "reset", "construction-loaded"]);
+const props = defineProps({
+  selectedId: { type: String, default: "" },
+  constructionVersion: { type: Number, default: 0 },
+  theme: { type: String, default: "dark" },
+});
+const emit = defineEmits([
+  "select",
+  "loaded",
+  "reset",
+  "construction-loaded",
+  "theme-change",
+]);
 const container = ref(null);
 const loading = ref(true);
 const error = ref("");
@@ -68,7 +80,11 @@ const abortController = new AbortController();
 setWorkerUrl(workerUrl);
 let map;
 let activeId = "";
+let markedConstructionIds = [];
 let buildingLookup = new globalThis.Map();
+let basemapLayerIds = [];
+let darkBasemapPaint = new globalThis.Map();
+let basemapReady = false;
 const defaultView = {
   center: [121.1915503, 24.9684403], // Nominatim OSM relation 18727079
   zoom: 15.5,
@@ -82,31 +98,81 @@ const campusBounds = [
   [121.1843596, 24.9635065],
   [121.1980519, 24.9722322],
 ];
+const darkColors = {
+  background: "#071522",
+  water: "#0c3957",
+  waterway: "#146087",
+  landuse_park: "#103348",
+  landcover_wood: "#103348",
+  landcover_grass: "#12344b",
+};
+const lightColors = {
+  background: "#f5f6f1",
+  water: "#b8dce8",
+  waterway: "#96c9dc",
+  landuse_park: "#d5e8cb",
+  landcover_wood: "#c7debf",
+  landcover_grass: "#dfebd4",
+  landuse_residential: "#e7e7e2",
+};
+// OpenFreeMap publishes dark and bright styles, but no /styles/light endpoint.
+// Recoloring its existing vector layers keeps the campus sources and feature state.
 
-function styleBasemap(mapInstance) {
+function styleBasemap(mapInstance, theme) {
   // Recolor the existing vector style only; all sources and feature geometry stay intact.
-  const colors = {
-    background: "#071522",
-    water: "#0c3957",
-    waterway: "#146087",
-    landuse_park: "#103348",
-    landcover_wood: "#103348",
-    landcover_grass: "#12344b",
-  };
-  for (const layer of mapInstance.getStyle().layers || []) {
+  const colors = theme === "light" ? lightColors : darkColors;
+  for (const id of basemapLayerIds) {
+    const layer = mapInstance.getLayer(id);
+    if (!layer) continue;
     if (layer.type === "symbol" || layer.type === "fill-extrusion") {
-      mapInstance.setLayoutProperty(layer.id, "visibility", "none");
-    } else if (colors[layer.id] && layer.type === "background") {
-      mapInstance.setPaintProperty(layer.id, "background-color", colors[layer.id]);
-    } else if (colors[layer.id] && layer.type === "fill") {
-      mapInstance.setPaintProperty(layer.id, "fill-color", colors[layer.id]);
-    } else if (colors[layer.id] && layer.type === "line") {
-      mapInstance.setPaintProperty(layer.id, "line-color", colors[layer.id]);
-    } else if (layer.id.startsWith("road_") && layer.type === "line") {
-      mapInstance.setPaintProperty(layer.id, "line-color", "#245072");
+      mapInstance.setLayoutProperty(id, "visibility", "none");
+    } else if (colors[id] && layer.type === "background") {
+      mapInstance.setPaintProperty(id, "background-color", colors[id]);
+    } else if (colors[id] && layer.type === "fill") {
+      mapInstance.setPaintProperty(id, "fill-color", colors[id]);
+    } else if (colors[id] && layer.type === "line") {
+      mapInstance.setPaintProperty(id, "line-color", colors[id]);
+    } else if (id === "road_pier" && layer.type === "line") {
+      mapInstance.setPaintProperty(
+        id,
+        "line-color",
+        theme === "light" ? "#354953" : "#245072"
+      );
+    } else if (id.startsWith("highway_") && layer.type === "line") {
+      mapInstance.setPaintProperty(
+        id,
+        "line-color",
+        theme === "light" ? "#354953" : darkBasemapPaint.get(id)
+      );
+    } else if (id === "building" && layer.type === "fill") {
+      mapInstance.setPaintProperty(
+        id,
+        "fill-color",
+        theme === "light" ? "#e3e5e3" : darkBasemapPaint.get(id)
+      );
+    } else if (id === "road_area_pier" && layer.type === "fill") {
+      mapInstance.setPaintProperty(
+        id,
+        "fill-color",
+        theme === "light" ? "#e3e5e3" : darkBasemapPaint.get(id)
+      );
     }
   }
+  if (mapInstance.getLayer("campus-roads-line")) {
+    mapInstance.setPaintProperty(
+      "campus-roads-line",
+      "line-color",
+      theme === "light" ? "#354953" : "#48c4df"
+    );
+  }
 }
+
+watch(
+  () => props.theme,
+  (value) => {
+    if (basemapReady) styleBasemap(map, value);
+  }
+);
 
 function resetView() {
   if (map && !loading.value && !error.value) {
@@ -117,17 +183,26 @@ function resetView() {
 }
 
 async function loadConstruction() {
+  if (!map?.getSource("campus-buildings")) return;
+  constructionStatus.value = "loading";
   try {
     const data = await loadConstructionData(abortController.signal);
     if (abortController.signal.aborted) return;
     const ids = [...new Set(data.building_ids)].filter((id) =>
       buildingLookup.has(id)
     );
+    for (const id of markedConstructionIds) {
+      map.setFeatureState(
+        { source: "campus-buildings", id },
+        { construction: false }
+      );
+    }
     markConstructionBuildings(map, ids);
+    markedConstructionIds = ids;
     emit(
       "construction-loaded",
       data.announcements.filter((announcement) =>
-        ids.includes(announcement?.location?.location_id)
+        buildingLookup.has(announcement?.location?.location_id)
       )
     );
     constructionCount.value = ids.length;
@@ -136,6 +211,8 @@ async function loadConstruction() {
     if (!abortController.signal.aborted) constructionStatus.value = "error";
   }
 }
+
+watch(() => props.constructionVersion, loadConstruction);
 
 function updateSelection(id) {
   if (!map?.getSource("campus-buildings")) return;
@@ -174,7 +251,10 @@ onMounted(async () => {
     if (abortController.signal.aborted) return;
     const preparedBuildings = prepareBuildings(data.buildings);
     buildingLookup = new globalThis.Map(
-      preparedBuildings.features.map((feature) => [feature.properties.id, feature])
+      preparedBuildings.features.map((feature) => [
+        feature.properties.id,
+        feature,
+      ])
     );
     map = new Map({
       container: container.value,
@@ -192,8 +272,18 @@ onMounted(async () => {
     );
     map.addControl(new ScaleControl({ unit: "metric" }), "bottom-left");
     map.on("load", () => {
-      styleBasemap(map);
+      const basemapLayers = map.getStyle().layers;
+      basemapLayerIds = basemapLayers.map((layer) => layer.id);
+      darkBasemapPaint = new globalThis.Map(
+        basemapLayers.map((layer) => [
+          layer.id,
+          layer.paint?.[layer.type === "fill" ? "fill-color" : "line-color"],
+        ])
+      );
+      basemapReady = true;
+      styleBasemap(map, props.theme);
       addCampusLayers(map, data);
+      styleBasemap(map, props.theme);
       updateSelection(props.selectedId);
       loading.value = false;
       loadConstruction();
@@ -236,10 +326,10 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
 }
-.reset-view {
+.reset-view,
+.map-shell :deep(.theme-toggle) {
   position: absolute;
   z-index: 1;
-  top: 118px;
   right: 10px;
   display: grid;
   place-items: center;
@@ -252,14 +342,27 @@ onBeforeUnmount(() => {
   color: #73d9ff;
   cursor: pointer;
 }
+.reset-view {
+  top: 118px;
+}
+.map-shell :deep(.theme-toggle) {
+  top: 157px;
+}
+.map-shell :deep(.theme-toggle:disabled) {
+  cursor: wait;
+}
 .reset-view:hover:not(:disabled) {
+  background: #1a4b75;
+}
+.map-shell :deep(.theme-toggle:hover:not(:disabled)) {
   background: #1a4b75;
 }
 .reset-view:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.reset-view svg {
+.reset-view svg,
+.map-shell :deep(.theme-toggle svg) {
   width: 19px;
   height: 19px;
   fill: none;
@@ -342,5 +445,38 @@ onBeforeUnmount(() => {
 }
 .map-credit a {
   color: #285743;
+}
+.theme-light .reset-view,
+.theme-light :deep(.theme-toggle),
+.theme-light .construction-legend,
+.theme-light :deep(.maplibregl-ctrl-group) {
+  border-color: #b5c4cc;
+  background: #fff;
+  color: #17252d;
+  box-shadow: 0 4px 18px #364b5b30;
+}
+.theme-light .reset-view:hover:not(:disabled),
+.theme-light :deep(.theme-toggle:hover:not(:disabled)),
+.theme-light :deep(.maplibregl-ctrl-group button:hover) {
+  background: #eaf1f4;
+}
+.theme-light :deep(.maplibregl-ctrl-group button) {
+  border-color: #b5c4cc;
+}
+.theme-light :deep(.maplibregl-ctrl-group button span) {
+  filter: none;
+}
+.theme-light :deep(.maplibregl-ctrl-scale) {
+  border-color: #17252d;
+  background: #fff;
+  color: #17252d;
+}
+.theme-light .construction-legend span + span {
+  color: #205b77;
+}
+.theme-light .map-message {
+  border-color: #b5c4cc;
+  background: #fff;
+  color: #17252d;
 }
 </style>

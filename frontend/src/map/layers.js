@@ -28,6 +28,16 @@ export async function loadConstructionData(signal) {
   return data;
 }
 
+export async function refreshConstructionData() {
+  const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+  const response = await fetch(`${apiBase}/api/construction/refresh`, {
+    method: "POST",
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "施工公告更新失敗");
+  return data;
+}
+
 export function markConstructionBuildings(map, buildingIds) {
   for (const id of new Set(buildingIds)) {
     map.setFeatureState(

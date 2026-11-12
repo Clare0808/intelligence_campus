@@ -1,0 +1,290 @@
+[
+    {
+        "Id": "687b31e9-4092-4986-8c74-5bf472027187",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-10-13",
+        "NewsTitle": "115年10月17日至10月18日鴻經館後方外牆 施工公告",
+        "NewsContent": "<p><b>施工公告</b></p>\n\n<p><b>一.施工日期:115年10/17(星期六)、10/18(星期日)</b></p>\n\n<p><b>二.施工地點:鴻經館後方</b></p>\n\n<p><b>三.施工期間因吊車作業需求，需暫時封閉部份停車位(如下圖片所示)。</b></p>\n\n<p><b>四.請使用人提前移置車輛，並配合現場交通管制及施工安</b><b>全措施，以維護人車安全。</b></p>\n\n<p><b>施工期間造成不便之處，敬請見諒!!</b></p>\n\n<p><b>承辦人：營繕組 蕭先生&nbsp; 校內分機：57397</b></p>\n\n<p><b>總務處<a name=\"_Hlk242794244\">營繕組</a> 敬啟</b></p>\n\n<p><b><img alt=\"暫封車位圖1\" src=\"files/image/暫封車位圖1.jpg\" style=\"width: 432px; height: 301px;\" /></b></p>\n\n<p><b><img alt=\"暫封車位圖2\" src=\"files/image/暫封車位圖2.jpg\" style=\"width: 353px; height: 317px;\" /></b></p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "鴻經館後方外牆",
+            "building": "鴻經館",
+            "relative_area": "後方",
+            "specific_target": "外牆",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-10-17",
+            "end_date": "2026-10-18",
+            "description": null
+        },
+        "confidence": 1,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "a3a05246-8fbc-4c50-838c-93f307e10478",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-10-06",
+        "NewsTitle": "【總務處公告】有關中大湖湖岸步道整修拆卸之舊木板事宜",
+        "NewsContent": "<p>【總務處公告】</p>\n\n<p>&nbsp; &nbsp; &nbsp;有關中大湖湖岸步道整修拆卸之舊木板，即日起至10月15日下午17時止開放全校師生員工領取，暫置地點於科四館後門旁通道，屆時將全數清運處理，因暫制位置鄰近工區旁及拆卸之舊木板邊緣恐有缺口，敬請領取時注意安全避免受傷。</p>\n\n<p>營繕組聯絡人：莊先生，校內分機 57326</p>\n\n<p>施作廠商聯絡人：津鑽營造有限公司 李先生 0919-991-687</p>\n\n<p><img alt=\"湖岸步道整修拆卸之舊木板暫置地點圖.\" src=\"files/image/湖岸步道整修拆卸之舊木板暫置地點圖.jpg\" style=\"float: left; width: 698px; height: 494px;\" /></p>",
+        "announcement_type": "maintenance",
+        "location": {
+            "raw_text": "中大湖湖岸步道",
+            "building": null,
+            "relative_area": null,
+            "specific_target": "舊木板",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": null,
+            "end_date": null,
+            "description": "整修拆卸舊木板"
+        },
+        "confidence": 0.8,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "b47b29c2-4b8d-4d05-ba52-910e9249b53c",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-10-07",
+        "NewsTitle": "西區第二期「研究中心一期、研究中心二期高壓變電站電力改善」案停電公告日期變動更正",
+        "NewsContent": "<p><strong>西區第二期「研究中心一期、研究中心二期高壓變電站電力改善」案停電公告日期變動更正<br />\n<br />\n一、 工程名稱：第二期「研究中心一期、研究中心二期、雷達站、 大型力學實驗室及風洞實驗室高壓變電站電力改善」案<br />\n<br />\n二、 停電日期及時間：<br />\n<span style=\"color:#e74c3c;\">10/9(五) 研究中心一期、研究中心二期 時間：06:00~21:00</span><br />\n<br />\n三、 停電受影響單位：<span style=\"color:#e74c3c;\">研究中心一期、研究中心二期等館舍</span><br />\n<br />\n四、 說明：<br />\n(一) 停電期間該樓層出入口正常通行。<br />\n(二) 停電施工期間有施工噪音現象。<br />\n(三) 停電期間進出該區域附近之人員，請注意自身安全。<br />\n(四) 停電期間造成不便之處，敬請 見諒!!<br />\n<br />\n五、 施工廠商︰智景有限公司<br />\n工地負責人︰張景揚先生 手機：0910-232-962<br />\n設計監造單位:鎧鉅工程顧問有限公司<br />\n公司電話︰ 02-82421819<br />\n監造經理：林進財電機技師 手機：0938-032-456<br />\n<br />\n承辦單位:總務處營繕組<br />\n承辦人：吳清順 校內分機：28000<br />\n<br />\n總務處營繕組 敬啟</strong></p>",
+        "announcement_type": "maintenance",
+        "location": {
+            "raw_text": "西區第二期研究中心一期、研究中心二期高壓變電站",
+            "building": null,
+            "relative_area": null,
+            "specific_target": "高壓變電站電力",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": null,
+            "end_date": null,
+            "description": "研究中心一期、研究中心二期高壓變電站電力改善停電公告日期變動更正"
+        },
+        "confidence": 0.8,
+        "needs_review": true,
+        "review_reason": "公告標題提及停電公告日期變動更正，但未提供具體施工或停電日期，且無詳細地點建築物名稱，需進一步確認公告內容。",
+        "processing_status": "success"
+    },
+    {
+        "Id": "1399d315-ff27-4e25-bc1f-3317f2b5b353",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-10-06",
+        "NewsTitle": "115年10月8日至115年10月15日(預定工期)光電客院西側停車場地坪修繕 施工公告",
+        "NewsContent": "<p><strong>施工公告<br />\n<br />\n一、工程名稱：光電客院西側停車場地坪修繕<br />\n<br />\n二、施工期間：115年10月8日至115年10月15日(預定工期)<br />\n<br />\n三、施工區域：光電客院西側停車場<br />\n<br />\n四、說 明：<br />\n(一)光電客院西側汽車停車場施工期間汽車位仍可正常進出及使用，惟車格號碼18至23共計6個車格無法使用。<br />\n(二)施工期間進出該區域之人車請小心通行並注意安全。<br />\n(三)施工期間可能會有噪音、粉塵等情況。<br />\n(四)室外工程倘遇雨天無法施作將順延工期(不另通知)。<br />\n<br />\n※ 施工期間造成不便之處，敬請 見諒!!!<br />\n<br />\n施工廠商︰福安土木包工業<br />\n負 責 人︰簡先生<br />\n電 話：0928-873115<br />\n營繕組電話︰03-4227151<br />\n<br />\n總務處營繕組 敬啟</strong></p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "光電客院西側停車場",
+            "building": "光電客院",
+            "relative_area": "西側",
+            "specific_target": "停車場地坪",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-10-08",
+            "end_date": "2026-10-15",
+            "description": "停車場地坪修繕"
+        },
+        "confidence": 0.95,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "76f58b13-3227-4b1f-9f9f-52c5fc8d591d",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-09-16",
+        "NewsTitle": "115年9月19日至115年10月19日機械館及運動場旁樹木綠帶腳踏車地坪施作工程 施工公告",
+        "NewsContent": "<p><strong>施工公告</strong></p>\n\n<p><strong>事由：械館及運動場旁樹木綠帶腳踏車地坪施作工程</strong></p>\n\n<p><strong>施工區域：機械館及運動場旁(如下圖)</strong></p>\n\n<p><strong>施工時間：115年9月19日至115年10月19日</strong></p>\n\n<p><strong>※施工中不便之處敬祈見諒</strong></p>\n\n<p><strong>施工廠商及電話：尚業興有限公司&nbsp; 吳先生/0988-027021</strong></p>\n\n<p><strong>營繕組電話：03-4227151#57320</strong></p>\n\n<p><strong>總務處 啟</strong></p>\n\n<p><strong><img alt=\"1150919施工公告圖\" src=\"files/image/1150919施工公告圖.jpg\" style=\"width: 579px; height: 445px;\" /></strong></p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "機械館及運動場旁樹木綠帶腳踏車地坪",
+            "building": "機械館",
+            "relative_area": "運動場旁",
+            "specific_target": "腳踏車地坪",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-09-19",
+            "end_date": "2026-10-19",
+            "description": "樹木綠帶腳踏車地坪施作工程"
+        },
+        "confidence": 0.9,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "2782c475-e108-44c7-b7ea-df0986f1a02b",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-08-28",
+        "NewsTitle": "115年8月28日起中大湖湖岸步道整修 施工公告",
+        "NewsContent": "<p><strong>115年8月28日起中大湖湖岸步道整修 施工公告</strong></p>\n\n<p><strong>一、 為整修中大湖湖岸步道因年久失修影響師生員工及遊客安全，自115年8月28日起進行中大湖湖岸步道整修作業。</strong></p>\n\n<p><strong>二、 施工封閉範圍詳如下附圖（施作區域可能因現況條件適時微調）。</strong></p>\n\n<p><strong>三、 施工期間，提醒全校師生員工及遊客遵守禁止進入施工範圍以免造成危險，造成您的不便，敬請見諒，感謝您的配合。</strong></p>\n\n<p><strong>營繕組聯絡人：莊先生，校內分機 57326</strong></p>\n\n<p><strong>施作廠商聯絡人：津鑽營造有限公司 李先生 0919-991-687</strong></p>\n\n<p><strong>總務處營繕組 敬啟</strong></p>\n\n<p><img alt=\"中大湖湖岸步道整修圖\" src=\"files/image/中大湖湖岸步道整修圖.jpg\" style=\"width: 4361px; height: 2900px;\" /></p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "中大湖湖岸步道",
+            "building": null,
+            "relative_area": null,
+            "specific_target": "步道",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-08-28",
+            "end_date": null,
+            "description": "湖岸步道整修施工"
+        },
+        "confidence": 0.9,
+        "needs_review": true,
+        "review_reason": "公告標題未明確提供施工結束日期，且缺少詳細施工範圍與具體位置描述。",
+        "processing_status": "success"
+    },
+    {
+        "Id": "0c938b7c-e500-46b2-b8ad-fff8d2ce89a8",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-07-02",
+        "NewsTitle": "115年7月8日~115年8月7日男九舍機車停車場坡坎 施工公告",
+        "NewsContent": "<p><img alt=\"男九舍機車停車場坡坎施工公告\" src=\"files/image/115年7月8日~115年8月7日男九舍機車停車場坡坎施工公告.jpg\" style=\"width: 717px; height: 1122px;\" /></p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "男九舍機車停車場坡坎",
+            "building": "男九舍",
+            "relative_area": "機車停車場",
+            "specific_target": "坡坎",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-07-08",
+            "end_date": "2026-08-07",
+            "description": "男九舍機車停車場坡坎施工"
+        },
+        "confidence": 0.9,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "a530af4b-0ca1-4125-975f-f235ad03c260",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-06-25",
+        "NewsTitle": "115年7月1日至115年7月15日校內部份區域地坪、人行道路零星修繕 施工公告",
+        "NewsContent": "<p>施工公告<br />\n<br />\n一、工程名稱：校內部份區域地坪、人行道路零星修繕<br />\n<br />\n二、施工期間：115年7月1日至115年7月15日<br />\n<br />\n三、施工區域：<br />\n(一)國鼎圖書資料館至垃圾處理場間之人行步道改善<br />\n(二)文學一館北側至人文社會科學大樓之人行步道修繕<br />\n(三)光電客院西側汽車停車場地坪下陷修繕<br />\n<br />\n四、說 明：<br />\n(一)人行步道施工期間該區域無法通行；光電客院西側汽車停車場施工期間汽車位仍可正常使用，惟兩區塊停車場無法互通(進出皆同一開口)<br />\n(二)施工期間該處進出之人車請儘量避免行經施工區域或小心通行。<br />\n(三)施工期間可能會有噪音、粉塵等情況。<br />\n(四)室外工程倘遇雨天無法施作將順延工期(不另通知)。<br />\n<br />\n※ 施工期間造成不便之處，敬請 見諒!!!<br />\n<br />\n施工廠商︰福安土木包工業<br />\n負 責 人︰簡先生<br />\n電 話：0928-873115<br />\n營繕組電話︰03-4227151<br />\n<br />\n總務處營繕組 敬啟</p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "校內部份區域地坪、人行道路",
+            "building": null,
+            "relative_area": null,
+            "specific_target": "地坪、人行道路",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-07-01",
+            "end_date": "2026-07-15",
+            "description": "零星修繕"
+        },
+        "confidence": 0.9,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "4541cc8c-dac2-4137-b36b-b63273358278",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-06-17",
+        "NewsTitle": "115年6月22日起至115年9月19日鴻經館外牆修繕工程 施工公告",
+        "NewsContent": "<p><strong>施工公告</strong></p>\n\n<p><strong>一、工程名稱：鴻經館外牆修繕工程</strong></p>\n\n<p><strong>二、施工期間：115年6月22日起至115年9月19日止</strong></p>\n\n<p><strong>三、施工地點: 鴻經館 四、注意事項：</strong></p>\n\n<p><strong>(一)施工期間請留意現場安全警示標誌，並避免進入施工管制區域，以維護人身安全。</strong></p>\n\n<p><strong>(二) 施工期間有噪音、及物品掉落現象，請留意管制動線。</strong></p>\n\n<p><strong>(三)因需搭設鷹架，原停放於廊道底下之腳踏車將配合移置其他指定區域。</strong></p>\n\n<p><strong>施工期間如造成不便，敬請包涵，感謝您的配合。</strong></p>\n\n<p><strong>施工廠商︰億境營造有限公司 現場(工地)負責人︰廖震宸：0935091001</strong></p>\n\n<p><strong>承辦單位:總務處營繕組承辦人：蕭先生 校內分機：57397</strong></p>\n\n<p><strong>總務處 啟</strong></p>\n\n<p><img alt=\"1150622施工公告圖1\" src=\"files/image/1150622施工公告圖1.jpg\" style=\"width: 850px; height: 503px;\" /></p>\n\n<p><img alt=\"1150622施工公告圖2\" src=\"files/image/1150622施工公告圖2.jpg\" style=\"width: 876px; height: 512px;\" /></p>\n\n<p><img alt=\"1150622施工公告圖3\" src=\"files/image/1150622施工公告圖3.jpg\" style=\"width: 741px; height: 728px;\" /></p>",
+        "announcement_type": "maintenance",
+        "location": {
+            "raw_text": "鴻經館外牆",
+            "building": "鴻經館",
+            "relative_area": null,
+            "specific_target": "外牆",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-06-22",
+            "end_date": "2026-09-19",
+            "description": "鴻經館外牆修繕工程"
+        },
+        "confidence": 1,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "93bdb208-2e5c-4206-9b03-296a4afa4a83",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-05-18",
+        "NewsTitle": "115年05月18日至115年8月30日科一館S600-2生物地球化學實驗室建置案 施工公告",
+        "NewsContent": "<p><strong>施工公告<br />\n<br />\n工程名稱：科一館S600-2生物地球化學實驗室建置案<br />\n<br />\n施工期間：115年05月18日開工，預定於115年8月30日完工。<br />\n<br />\n施工範圍：科一館中庭靠大講堂側S600-2周邊<br />\n<br />\n注意事項：<br />\nㄧ、施工期間請配合避免進入施工區域，以免產生危險。<br />\n二、科一館S600-2周邊會有較為持續鑽孔、洗洞、打鑿所產生噪音。<br />\n三、工區周邊會有廢棄物及材料暫置通過時請注意，上開各點造成不便之處，敬請見諒，謝謝。<br />\n<br />\n<br />\n聯絡單位：<br />\n廠商千馳實業有限公司 蔡嘉錫 0932-029-901<br />\n採購承辦單位 總務處營繕組 李信鐘 57328 0963-693980<br />\n<br />\n總務處啟</strong></p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "科一館S600-2生物地球化學實驗室",
+            "building": "科一館",
+            "relative_area": null,
+            "specific_target": "S600-2生物地球化學實驗室",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-05-18",
+            "end_date": "2026-08-30",
+            "description": "科一館S600-2生物地球化學實驗室建置案施工"
+        },
+        "confidence": 0.9,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "78d56cc4-0ec4-4c1e-8132-07408f5665a8",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-05-19",
+        "NewsTitle": "115年5月20日至115年6月16日西區第二期高壓變電站改善 施工公告",
+        "NewsContent": "<p style=\"margin-bottom:11px\"><strong>施工公告<br />\n<br />\n一、 工程名稱：第二期「研究中心一期、研究中心二期、雷達站、大型力學實驗室及風洞實驗室高壓變電站電力改善」案<br />\n<br />\n二、 挖掘施工高壓管路佈建日期及時間：115年5月20日上午08:00 AM至 115年6月16日下午05:00 PM<br />\n<br />\n三、 受影響單位區域範圍：研究中心二期、大型力學實驗室及雷達站實驗室館舍周邊區域<br />\n<br />\n四、 說 明：<br />\n1. 施工期間館舍樓層出入口正常通行，會影響&rdquo;研究中心二期館舍東側&rdquo;路邊停車。<br />\n2. 施工期間有挖掘機器產生施工噪音現象。<br />\n3. 施工挖掘期間進出該區域附近之人員，請注意自身安全。<br />\n4. 施工期間造成不便之處，敬請見諒!!<br />\n<br />\n五、 施工廠商︰智景有限公司<br />\n工地負責人︰張景揚先生 電話：0910232962<br />\n設計監造單位:鎧鉅工程顧問有限公司<br />\n公司電話︰ 02-82421819<br />\n監造經理：林進財技師 0938-032456<br />\n承辦單位:總務處營繕組<br />\n承辦人：吳清順佐 校內分機：28000<br />\n<br />\n總務處營繕組 敬啟</strong></p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "西區第二期高壓變電站",
+            "building": null,
+            "relative_area": "西區",
+            "specific_target": "高壓變電站",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-05-20",
+            "end_date": "2026-06-16",
+            "description": "115年5月20日至115年6月16日西區第二期高壓變電站改善施工"
+        },
+        "confidence": 0.9,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    },
+    {
+        "Id": "49318045-8e9d-4c7e-94e6-96d68e01de14",
+        "PublishDepartment": "營繕組",
+        "PublishDate": "2026-05-12",
+        "NewsTitle": "115年5月13日至115年7月31日男九舍機車停車場整建工程 施工公告",
+        "NewsContent": "<p>施工公告<br />\n<br />\n一.工程名稱: 男九舍機車停車場整建工程<br />\n二.施工期間: 115年5月13日至115年7月31日<br />\n三.施工地點: 男九舍後面機車停車場<br />\n四.說明:<br />\n1.施工期間非施工人員請勿進入施工區域，以免發生危險。<br />\n2.騎行機車請減速慢行，注意安全。<br />\n3.公告禁止停車的區域，請勿停放車輛(圖示)</p>\n\n<p><img alt=\"男九舍後面機車停車場圖片1\" src=\"files/image/男九舍後面機車停車場圖片1.jpg\" style=\"width: 1325px; height: 1007px;\" /><br />\n<img alt=\"男九舍後面機車停車場圖片2\" src=\"files/image/男九舍後面機車停車場圖片2.jpg\" style=\"width: 1322px; height: 1005px;\" /></p>\n\n<p>施工期間造成不便之處 敬請見諒!!</p>\n\n<p><br />\n施工廠商:德溢營造股份有限公司<br />\n聯絡人:石棟宇 0978750513<br />\n總務處營繕組 蕭先生 分機57397</p>",
+        "announcement_type": "construction",
+        "location": {
+            "raw_text": "男九舍機車停車場",
+            "building": "男九舍",
+            "relative_area": null,
+            "specific_target": "機車停車場",
+            "location_id": null
+        },
+        "construction": {
+            "start_date": "2026-05-13",
+            "end_date": "2026-07-31",
+            "description": "男九舍機車停車場整建工程"
+        },
+        "confidence": 0.9,
+        "needs_review": false,
+        "review_reason": null,
+        "processing_status": "success"
+    }
+]

@@ -3,6 +3,11 @@
 </template>
 
 <style lang="scss">
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
 :root {
   font-family: "DM Sans", "Segoe UI", "Microsoft JhengHei", sans-serif;
   color: #23332d;
