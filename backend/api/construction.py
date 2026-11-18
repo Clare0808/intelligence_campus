@@ -7,7 +7,7 @@ from tempfile import NamedTemporaryFile
 from threading import Lock
 
 import click
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 
 from . import api_bp
 from .crawl import run_crawler
@@ -89,20 +89,24 @@ def update_construction_data():
     ):
         raise RuntimeError("All announcements failed")
 
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    write_json(DATA_FILE, records)
+    return len(records)
+
+
+def write_json(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
     # 完整寫入暫存檔後才取代舊資料，避免 API 讀到寫入一半的 JSON。
     temporary_path = None
     try:
         with NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=DATA_FILE.parent, delete=False
+            mode="w", encoding="utf-8", dir=path.parent, delete=False
         ) as temporary_file:
             temporary_path = Path(temporary_file.name)
-            json.dump(records, temporary_file, ensure_ascii=False, indent=4)
-        temporary_path.replace(DATA_FILE)
+            json.dump(payload, temporary_file, ensure_ascii=False, indent=4)
+        temporary_path.replace(path)
     finally:
         if temporary_path is not None and temporary_path.exists():
             temporary_path.unlink()
-    return len(records)
 
 
 @click.command("refresh-construction")
@@ -129,10 +133,13 @@ def refresh_construction_api():
         return jsonify(message="僅允許由本機觸發公告更新。"), 403
     if not refresh_lock.acquire(blocking=False):
         return jsonify(message="公告資料正在更新中，請稍後再試。"), 409
+    feed = current_app.extensions.get("construction_feed")
     try:
-        count = update_construction_data()
+        count = feed.refresh() if feed else update_construction_data()
     except Exception:
         logger.exception("Construction refresh failed")
+        if feed:
+            return jsonify(message="暫時無法取得校方公告，目前顯示上次成功取得的資料。"), 502
         return jsonify(message="更新失敗，原有公告資料已保留。請確認後端爬蟲設定。"), 500
     finally:
         refresh_lock.release()
@@ -140,11 +147,16 @@ def refresh_construction_api():
 
 
 @api_bp.get("/construction")
-def get_construction():
+def get_construction(include_hidden=False):
+    feed = current_app.extensions.get("construction_feed")
+    live_records, metadata = feed.snapshot() if feed else ([], None)
+    extra = {"refresh": metadata} if metadata else {}
     try:
         records = json.loads(DATA_FILE.read_text(encoding="utf-8-sig"))
     except FileNotFoundError:
-        return jsonify(announcements=[], building_ids=[], data_status="missing")
+        if not live_records and not any(source["updated_at"] for source in (metadata or {}).get("sources", [])):
+            return jsonify(announcements=[], building_ids=[], data_status="missing", **extra)
+        records = []
     except (OSError, ValueError):
         return jsonify(message="無法讀取施工公告資料。"), 500
 
@@ -153,6 +165,11 @@ def get_construction():
     ):
         return jsonify(message="施工公告資料格式錯誤。"), 500
 
+    if live_records:
+        by_id = {record["Id"]: record for record in live_records}
+        records = live_records + [record for record in records if record.get("Id") not in by_id]
+
+    hidden = feed.store.hidden_ids() if feed else set()
     # 只處理成功抽取的施工公告，保留待確認資訊。
     announcements = [
         {
@@ -161,13 +178,17 @@ def get_construction():
             "location": record.get("location"),
             "construction": record.get("construction"),
             "needs_review": record.get("needs_review"),
+            "PublishDate": record.get("PublishDate"),
+            "source_name": record.get("source_name"),
+            "source_url": record.get("source_url"),
         }
         for record in records
         if record.get("processing_status") == "success"
         and record.get("announcement_type") == "construction"
+        and (include_hidden or record.get("Id") not in hidden)
     ]
     if not announcements:
-        return jsonify(announcements=[], building_ids=[], data_status="ready")
+        return jsonify(announcements=[], building_ids=[], data_status="ready", **extra)
 
     try:
         buildings = json.loads(BUILDINGS_FILE.read_text(encoding="utf-8-sig"))
@@ -192,12 +213,16 @@ def get_construction():
         }
 
     today = current_date()
+    for announcement in announcements:
+        announcement["in_window"] = is_construction_in_next_two_weeks(announcement["construction"], today)
+        if include_hidden:
+            announcement["hidden"] = announcement["Id"] in hidden
     building_ids = sorted({
         announcement["location"]["location_id"]
         for announcement in announcements
         if announcement["location"]["location_id"] is not None
-        and is_construction_in_next_two_weeks(announcement["construction"], today)
+        and announcement["in_window"]
     })
     return jsonify(
-        announcements=announcements, building_ids=building_ids, data_status="ready"
+        announcements=announcements, building_ids=building_ids, data_status="ready", **extra
     )

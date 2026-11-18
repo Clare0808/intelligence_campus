@@ -1,15 +1,54 @@
 import json
 import tempfile
 import unittest
+from types import SimpleNamespace
 from datetime import date
 from pathlib import Path
 from unittest.mock import patch
 
 from app import app
 from api import construction
+from api.construction_store import ConstructionStore
 
 
 class ConstructionApiTests(unittest.TestCase):
+    def test_hidden_live_notice_also_filters_its_legacy_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            records_file = folder / "notices.json"
+            buildings_file = folder / "buildings.json"
+            notice = {
+                "Id": "duplicate", "NewsTitle": "管二施工公告",
+                "processing_status": "success", "announcement_type": "construction",
+                "location": {"building": "管二"},
+                "construction": {
+                    "start_date": date.today().isoformat(), "end_date": date.today().isoformat(),
+                },
+            }
+            records_file.write_text(json.dumps([notice]), encoding="utf-8")
+            buildings_file.write_text(json.dumps({
+                "type": "FeatureCollection",
+                "features": [{"properties": {"id": "way/42", "name": "管理學院二館"}}],
+            }), encoding="utf-8")
+            store = ConstructionStore(folder / "construction.sqlite3")
+            store.set_hidden("duplicate", True, False, "reviewer")
+            feed = SimpleNamespace(store=store, snapshot=lambda: (
+                [notice], {"interval_minutes": 30, "sources": []}
+            ))
+            with patch.dict(app.extensions, {"construction_feed": feed}), patch.object(
+                construction, "DATA_FILE", records_file
+            ), patch.object(construction, "BUILDINGS_FILE", buildings_file):
+                response = app.test_client().get("/api/construction")
+                self.assertEqual(response.json["announcements"], [])
+                self.assertEqual(response.json["building_ids"], [])
+                with app.test_request_context():
+                    admin_view = construction.get_construction(include_hidden=True).json
+                self.assertTrue(admin_view["announcements"][0]["hidden"])
+                store.set_hidden("duplicate", False, True, "reviewer")
+                self.assertEqual(
+                    app.test_client().get("/api/construction").json["building_ids"], ["way/42"]
+                )
+
     def test_crawled_construction_is_returned_with_map_building_id(self):
         with tempfile.TemporaryDirectory() as directory:
             records_file = Path(directory) / "school_news_processed.json"

@@ -1,4 +1,5 @@
 import { categories, categoryForName } from "./categories.js";
+import { walkingNetworkGeoJSON } from "./walkingRoutes.js";
 
 const emptyCollection = () => ({ type: "FeatureCollection", features: [] });
 
@@ -14,7 +15,10 @@ function positiveNumber(value) {
 
 export async function loadConstructionData(signal) {
   const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
-  const response = await fetch(`${apiBase}/api/construction`, { signal });
+  const response = await fetch(`${apiBase}/api/construction`, {
+    signal,
+    cache: "no-store",
+  });
   if (!response.ok) throw new Error("施工資料載入失敗");
   const data = await response.json();
   if (
@@ -59,13 +63,19 @@ export async function loadCampusData(signal) {
       throw new Error(`GeoJSON 載入失敗：HTTP ${response.status}`);
   }
   const [buildings, roads] = await Promise.all(responses.map((r) => r.json()));
+  const walkingResponse = await fetch(
+    import.meta.env.BASE_URL + "data/campus-walking-network.json",
+    { signal }
+  );
+  if (!walkingResponse.ok) throw new Error("校園路網資料載入失敗");
+  const walkingNetwork = await walkingResponse.json();
   if (
     buildings.type !== "FeatureCollection" ||
     roads.type !== "FeatureCollection"
   ) {
     throw new Error("GeoJSON 格式錯誤");
   }
-  return { buildings, roads };
+  return { buildings, roads, walkingNetwork };
 }
 
 export function prepareBuildings(collection) {
@@ -117,7 +127,12 @@ export function prepareBuildings(collection) {
 }
 
 export function addCampusLayers(map, data) {
-  map.addSource("campus-roads", { type: "geojson", data: data.roads });
+  map.addSource("campus-roads", {
+    type: "geojson",
+    data: data.walkingNetwork
+      ? walkingNetworkGeoJSON(data.walkingNetwork)
+      : data.roads,
+  });
   map.addLayer({
     id: "campus-roads-line",
     type: "line",
@@ -133,6 +148,29 @@ export function addCampusLayers(map, data) {
     type: "geojson",
     data: prepareBuildings(data.buildings),
     promoteId: "id",
+  });
+  const buildingColor = [
+    "case",
+    ["boolean", ["feature-state", "construction"], false],
+    "#ff4b48",
+    ["boolean", ["feature-state", "selected"], false],
+    "#44f3ff",
+    [
+      "match",
+      ["get", "category"],
+      ...categories.flatMap(({ id, color }) => [id, color]),
+      "#557785",
+    ],
+  ];
+  map.addLayer({
+    id: "campus-building-flat",
+    type: "fill",
+    source: "campus-buildings",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-color": buildingColor,
+      "fill-opacity": 0.94,
+    },
   });
   map.addLayer({
     id: "campus-building-footprints",
@@ -154,19 +192,7 @@ export function addCampusLayers(map, data) {
     type: "fill-extrusion",
     source: "campus-buildings",
     paint: {
-      "fill-extrusion-color": [
-        "case",
-        ["boolean", ["feature-state", "construction"], false],
-        "#ff4b48",
-        ["boolean", ["feature-state", "selected"], false],
-        "#44f3ff",
-        [
-          "match",
-          ["get", "category"],
-          ...categories.flatMap(({ id, color }) => [id, color]),
-          "#557785",
-        ],
-      ],
+      "fill-extrusion-color": buildingColor,
       "fill-extrusion-height": ["get", "display_height"],
       "fill-extrusion-base": ["get", "display_min_height"],
       "fill-extrusion-opacity": 0.94,
