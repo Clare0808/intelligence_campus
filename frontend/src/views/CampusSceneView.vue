@@ -1,5 +1,9 @@
 ﻿<template>
-  <main class="campus-page" :class="{ 'theme-light': theme === 'light' }">
+  <main
+    class="campus-page"
+    :class="{ 'theme-light': theme === 'light' }"
+    @keydown.esc="cancelPick"
+  >
     <!-- <header class="header">
       <div class="identity">
         <span class="mark">中</span
@@ -18,13 +22,24 @@
         <div class="map-area">
           <CampusMap
             :selected-id="selectedId"
+            :sidebar-open="sidebarOpen"
             :theme="theme"
+            :tool-layers="toolLayers"
+            :tool-focus="toolFocus"
+            :picking-location="pickingLocation"
             @loaded="onLoaded"
             @select="onSelect"
-            @reset="selectedId = ''"
+            @reset="resetMap"
+            @clear-route="clearRouteCount += 1"
             @construction-loaded="onConstructionLoaded"
             @theme-change="setTheme"
+            @tool-point="onToolPoint"
+            @tool-marker="onToolMarker"
           />
+          <div v-if="pickingLocation" class="pick-location" role="status">
+            <span>點擊地圖選擇回報位置。</span>
+            <button type="button" @click="cancelPick">取消</button>
+          </div>
         </div>
       </section>
       <aside
@@ -34,6 +49,20 @@
         aria-label="校園地點分類側邊欄"
         :inert="!sidebarOpen"
       >
+        <nav class="campus-navigation" aria-label="校園頁面導覽">
+          <RouterLink :to="{ name: 'campus-admin' }">管理後台</RouterLink>
+        </nav>
+        <CampusTools
+          :map-point="toolPoint"
+          :map-marker="toolMarker"
+          :reset-count="resetTools"
+          :clear-route-count="clearRouteCount"
+          @layers="toolLayers = $event"
+          @focus="toolFocus = { point: $event }"
+          @route-focus="toolFocus = { route: $event }"
+          @pick-location="startPick"
+          @show-map="sidebarOpen = false"
+        />
         <div class="construction-refresh">
           <button
             class="refresh-button"
@@ -47,6 +76,10 @@
             {{ refreshError }}
           </p>
         </div>
+        <OfficialConstructionNotices
+          :announcements="constructionAnnouncements"
+          :refresh="constructionRefresh"
+        />
         <input
           id="building-search"
           v-model="query"
@@ -83,6 +116,7 @@
                 :key="building.properties.id"
                 class="building-row"
                 :class="{ active: selectedId === building.properties.id }"
+                :aria-pressed="selectedId === building.properties.id"
                 type="button"
                 @click="onSelect(building.properties.id)"
               >
@@ -139,7 +173,7 @@
         :aria-expanded="sidebarOpen"
         @click="sidebarOpen = !sidebarOpen"
       >
-        {{ sidebarOpen ? "◀" : "▶" }}
+        <span aria-hidden="true">{{ sidebarOpen ? "◀" : "▶" }}</span>
       </button>
     </div>
     <div
@@ -171,15 +205,51 @@
   </main>
 </template>
 <script setup>
+import CampusTools from "../components/CampusTools.vue";
+import OfficialConstructionNotices from "../components/OfficialConstructionNotices.vue";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
 import { categories } from "../map/categories";
 import { refreshConstructionData } from "../map/layers";
 const buildings = ref([]);
 const constructionAnnouncements = ref([]);
+const constructionRefresh = ref(null);
 const selectedId = ref("");
 const query = ref("");
 const sidebarOpen = ref(true);
+const toolLayers = ref(null);
+const toolFocus = ref(null);
+const toolPoint = ref(null);
+const toolMarker = ref(null);
+const resetTools = ref(0);
+const clearRouteCount = ref(0);
+const pickingLocation = ref(false);
+
+function resetMap() {
+  selectedId.value = "";
+  resetTools.value += 1;
+}
+
+function startPick() {
+  pickingLocation.value = true;
+  sidebarOpen.value = false;
+}
+
+function cancelPick() {
+  if (!pickingLocation.value) return;
+  pickingLocation.value = false;
+  sidebarOpen.value = true;
+}
+
+function onToolPoint(point) {
+  toolPoint.value = point;
+  cancelPick();
+}
+
+function onToolMarker(marker) {
+  toolMarker.value = marker;
+  sidebarOpen.value = true;
+}
 const theme = ref(
   localStorage.getItem("campus-theme") === "light" ? "light" : "dark"
 );
@@ -250,15 +320,60 @@ const selectedAnnouncements = computed(() =>
 function onLoaded(features) {
   buildings.value = features.filter((feature) => feature.properties.name);
 }
-function onConstructionLoaded(announcements) {
+function onConstructionLoaded(announcements, refresh) {
   constructionAnnouncements.value = announcements;
+  constructionRefresh.value = refresh ?? null;
 }
 function onSelect(id) {
-  selectedId.value = id;
-  sidebarOpen.value = true;
+  selectedId.value = selectedId.value === id ? "" : id;
+  // Narrow screens need the map area to show both the building and its label.
+  if (window.innerWidth < 600 && selectedId.value) sidebarOpen.value = false;
 }
 </script>
 <style scoped>
+.campus-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.campus-navigation a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--glow);
+  text-decoration: none;
+}
+.campus-navigation a:hover {
+  border-color: var(--glow);
+}
+.pick-location {
+  position: absolute;
+  z-index: 2;
+  top: 92px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 65px);
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+  font-size: 0.875rem;
+}
+.pick-location button {
+  min-height: 44px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-soft);
+  color: inherit;
+}
 .campus-page {
   --panel: rgba(9, 27, 49, 0.97);
   --panel-soft: rgba(12, 38, 66, 0.96);
@@ -406,8 +521,8 @@ function onSelect(id) {
 }
 .sidebar-toggle {
   border: 1px solid var(--line);
-  background: transparent;
-  color: var(--glow);
+  background: #a6c4d7;
+  color: #0b263d;
   cursor: pointer;
   position: absolute;
   z-index: 3;
@@ -420,6 +535,9 @@ function onSelect(id) {
   box-shadow: 5px 0 20px #06101d99;
   font-size: 18px;
   transition: left 0.25s ease;
+}
+.sidebar-toggle:hover {
+  background: #bfd7e6;
 }
 .sidebar-toggle-closed {
   left: 0;
@@ -668,9 +786,13 @@ input:focus-visible {
   scrollbar-color: #a3b8c4 #eef2f4;
 }
 .theme-light .sidebar-toggle {
-  background: #ffffffd9;
-  color: #17252d;
+  background: #f2e3bd;
+  border-color: #b69c65;
+  color: #493b21;
   box-shadow: 5px 0 20px #364b5b30;
+}
+.theme-light .sidebar-toggle:hover {
+  background: #e8d39f;
 }
 .theme-light .refresh-button {
   background: #fff;

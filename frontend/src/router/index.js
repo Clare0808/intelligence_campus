@@ -15,6 +15,11 @@ const routes = [
     name: "map",
     component: () => import("../views/HomeView.vue"),
   },
+  {
+    path: "/campus/admin",
+    name: "campus-admin",
+    component: () => import("../views/CampusAdminView.vue"),
+  },
 ];
 
 const router = createRouter({
