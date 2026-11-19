@@ -65,6 +65,7 @@
           </button>
         </nav>
         <CampusTools
+          :buildings="buildings"
           v-model:panel="activePanel"
           :map-point="toolPoint"
           :map-marker="toolMarker"
