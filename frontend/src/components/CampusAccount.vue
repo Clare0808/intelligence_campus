@@ -63,7 +63,9 @@ const {
   loginUrl,
 } = useCampusAccount();
 const route = useRoute();
-const loginError = computed(() => Boolean(route.query.login));
+const loginError = computed(() =>
+  route.query.login === "failed" || route.query.login === "unavailable"
+);
 const loadError = ref("");
 const busy = ref(false);
 

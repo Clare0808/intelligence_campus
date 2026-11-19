@@ -2,17 +2,31 @@
   <section class="tools" aria-label="校園地圖工具">
     <div class="tool-nav">
       <button
+        type="button"
+        :aria-expanded="panel === 'construction'"
+        :aria-controls="
+          panel === 'construction' ? 'construction-panel' : undefined
+        "
+        @click="panel = panel === 'construction' ? '' : 'construction'"
+      >
+        施工資訊
+      </button>
+      <button
         v-for="[id, name] in tools"
         :key="id"
         type="button"
         :aria-expanded="panel === id"
-        :aria-controls="panel ? 'campus-tool-panel' : undefined"
+        :aria-controls="panel === id ? 'campus-tool-panel' : undefined"
         @click="panel = panel === id ? '' : id"
       >
         {{ name }}
       </button>
     </div>
-    <div v-if="panel" id="campus-tool-panel" class="tool-panel">
+    <div
+      v-if="panel === 'route' || panel === 'markers' || panel === 'report'"
+      id="campus-tool-panel"
+      class="tool-panel"
+    >
       <template v-if="panel === 'route'">
         <h2>路線規劃</h2>
         <p v-if="datasetError" role="alert">{{ datasetError }}</p>
@@ -39,8 +53,7 @@
             路線偏好
             <select v-model="mode">
               <option value="walking">步行</option>
-              <option value="wheelchair">輪椅／推行李 · 避開階梯</option>
-              <option value="night">夜間 · 優先使用有照明紀錄的路段</option>
+              <option value="wheelchair">輪椅／推行李</option>
             </select>
           </label>
           <button
@@ -96,18 +109,16 @@
         <fieldset>
           <legend>顯示圖層</legend>
           <label class="check">
-            <input v-model="showAccessibility" type="checkbox" />
-            <span class="key access-key" aria-hidden="true">A</span>
-            無障礙設施
+            <input v-model="showOtherReports" type="checkbox" />
+            施工、毀壞資訊
           </label>
           <label class="check">
             <input v-model="showIdle" type="checkbox" />
-            <span class="key idle-key" aria-hidden="true">I</span>
             閒置設施
           </label>
           <label class="check">
-            <input v-model="showOtherReports" type="checkbox" />
-            其他校園回報（施工、毀壞）
+            <input v-model="showAccessibility" type="checkbox" />
+            無障礙設施
           </label>
         </fieldset>
         <p v-if="datasetError" role="alert">{{ datasetError }}</p>
@@ -171,7 +182,7 @@
         <button type="button" @click="loadReports">重新載入回報標記</button>
       </template>
 
-      <template v-else>
+      <template v-else-if="panel === 'report'">
         <h2>登入與回報</h2>
         <CampusAccount />
         <template v-if="account">
@@ -254,7 +265,6 @@
 
 <script setup>
 import { computed, onMounted, ref, shallowRef, watch } from "vue";
-import { useRoute } from "vue-router";
 import CampusAccount from "./CampusAccount.vue";
 import { createRoutePlanner } from "../map/walkingRoutes.js";
 import {
@@ -271,6 +281,7 @@ const props = defineProps({
   mapMarker: { type: Object, default: null },
   resetCount: { type: Number, default: 0 },
   clearRouteCount: { type: Number, default: 0 },
+  panel: { type: String, default: "" },
 });
 const emit = defineEmits([
   "layers",
@@ -278,16 +289,18 @@ const emit = defineEmits([
   "route-focus",
   "pick-location",
   "show-map",
+  "update:panel",
 ]);
-const route = useRoute();
 const { session } = useCampusAccount();
 const account = computed(() => session.value?.account);
 const tools = [
   ["route", "路線規劃"],
   ["markers", "地圖標記"],
-  ["report", "登入與回報"],
 ];
-const panel = ref(route.query.login ? "report" : "");
+const panel = computed({
+  get: () => props.panel,
+  set: (value) => emit("update:panel", value),
+});
 const accessibility = shallowRef(null);
 const network = shallowRef(null);
 const planner = shallowRef(null);
@@ -558,6 +571,10 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+}
+.tool-nav button {
+  width: 100%;
+  font: inherit;
 }
 .tools button,
 .tools select,

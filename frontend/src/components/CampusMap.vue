@@ -61,7 +61,6 @@
         <path d="M4 11a8 8 0 1 1 2.3 6.1" />
         <path d="M4 5v6h6" />
       </svg>
-      <span>回歸視角</span>
     </button>
     <ThemeToggle :theme="theme" @change="emit('theme-change', $event)" />
     <button
@@ -586,12 +585,17 @@ onBeforeUnmount(() => {
 }
 .reset-view {
   top: 118px;
-  width: auto;
-  height: 36px;
+  width: 29px;
+  height: 29px;
+  padding: 5px;
   grid-auto-flow: column;
   gap: 5px;
-  padding: 5px 8px;
   font-size: 12px;
+  border: 1px solid #35678a;
+  border-radius: 3px;
+  background: #102f50;
+  color: #73d9ff;
+  cursor: pointer;
 }
 .clear-route {
   bottom: 48px;

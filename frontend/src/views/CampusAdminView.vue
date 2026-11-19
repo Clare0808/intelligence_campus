@@ -2,28 +2,13 @@
   <main class="admin">
     <div class="admin-content">
       <header class="topbar">
-        <RouterLink :to="{ name: 'campus' }" class="brand"
-          ><span class="brand-mark"><AdminIcon name="shield" /></span
-          ><span
-            ><strong>中大智慧校園</strong><small>校園管理中心</small></span
-          ></RouterLink
+        <RouterLink :to="{ name: 'campus' }" class="button back-link"
+          ><AdminIcon name="back" /> 返回校園地圖</RouterLink
         >
         <div class="account-area">
           <span v-if="admin" class="role-badge">管理員</span><CampusAccount />
         </div>
       </header>
-      <div class="page-intro">
-        <div>
-          <p class="eyebrow">校園維運 · 管理總覽</p>
-          <h1>讓每一則回報，都有回應。</h1>
-          <p class="intro-copy">
-            集中查看校園狀況、審核使用者回報，與維護地圖上的施工資訊。
-          </p>
-        </div>
-        <RouterLink :to="{ name: 'campus' }" class="button back-link"
-          ><AdminIcon name="back" /> 返回校園地圖</RouterLink
-        >
-      </div>
       <template v-if="admin">
         <section class="overview" aria-label="回報統計" :aria-busy="loading">
           <button
@@ -66,14 +51,83 @@
             >
               <AdminIcon name="construction" /> 校方施工公告
             </button>
+            <button
+              type="button"
+              :aria-pressed="section === 'users'"
+              @click="section = 'users'"
+            >
+              <AdminIcon name="shield" /> 使用者管理
+            </button>
           </nav>
-          <span class="workspace-note">校園資訊，一處管理</span>
         </div>
-        <section v-if="section === 'construction'" class="construction-panel">
+        <section v-if="section === 'users'" class="users-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>已登入使用者</h2>
+            </div>
+            <button
+              class="button reload-button"
+              type="button"
+              :disabled="usersLoading"
+              @click="loadUsers"
+            >
+              <AdminIcon name="refresh" />
+              {{ usersLoading ? "載入中…" : "重新載入" }}
+            </button>
+          </div>
+          <div class="users-content" :aria-busy="usersLoading">
+            <p v-if="usersError" role="alert">{{ usersError }}</p>
+            <p v-if="usersMessage" role="status">{{ usersMessage }}</p>
+            <p v-if="usersLoading && !usersLoaded">正在載入使用者…</p>
+            <p v-else-if="!usersLoading && usersLoaded && !users.length">
+              尚無登入過的使用者。
+            </p>
+            <div v-else-if="usersLoaded" class="users-list">
+              <article
+                v-for="user in users"
+                :key="user.provider + ':' + user.subject"
+                class="user-row"
+              >
+                <div class="user-details">
+                  <strong>{{ user.name }}</strong>
+                  <span
+                    >{{ user.email || "未提供電子郵件"
+                    }}{{
+                      user.email && !user.email_verified ? "（未驗證）" : ""
+                    }}</span
+                  >
+                  <small
+                    >{{ user.provider }} · {{ user.subject }} · 最近登入：{{
+                      formatTime(user.last_login_at)
+                    }}</small
+                  >
+                </div>
+                <div class="user-role">
+                  <label :for="'role-' + user.provider + '-' + user.subject"
+                    >權限</label
+                  >
+                  <select
+                    :id="'role-' + user.provider + '-' + user.subject"
+                    :value="user.role"
+                    :disabled="usersBusy || usersLoading || user.owner"
+                    @change="changeRole(user, $event)"
+                  >
+                    <option value="user">使用者</option>
+                    <option value="admin">管理員</option>
+                  </select>
+                  <small v-if="user.owner">初始管理員，不可變更</small>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+        <section
+          v-else-if="section === 'construction'"
+          class="construction-panel"
+        >
           <div class="panel-heading">
             <div>
               <h2>校方施工公告</h2>
-              <p>查看官方來源，管理公告與施工標記的顯示狀態。</p>
             </div>
           </div>
           <OfficialConstructionAdmin />
@@ -88,7 +142,6 @@
                     reports.length
                   }}</span>
                 </h2>
-                <p>施工、毀壞與閒置設施的回報，都會集中在這裡。</p>
               </div>
               <a
                 :href="exportReportsUrl"
@@ -299,57 +352,6 @@
               >
             </footer>
           </section>
-          <aside class="management-help" aria-label="管理操作說明">
-            <section class="guide-card">
-              <span class="card-eyebrow">處理指南</span>
-              <h2>從回報到地圖，三個步驟</h2>
-              <ol class="workflow">
-                <li>
-                  <span class="step-number">01</span>
-                  <div>
-                    <h3>查看回報</h3>
-                    <p>確認內容、位置與回報時間。</p>
-                  </div>
-                </li>
-                <li>
-                  <span class="step-number">02</span>
-                  <div>
-                    <h3>審核並公開</h3>
-                    <p>公開後顯示於地圖，封路回報會影響路線規劃。</p>
-                  </div>
-                </li>
-                <li>
-                  <span class="step-number">03</span>
-                  <div>
-                    <h3>匯出與追蹤</h3>
-                    <p>透過 Excel 整理全部回報與審核狀態。</p>
-                  </div>
-                </li>
-              </ol>
-              <p class="guide-note">
-                <AdminIcon name="shield" /><span
-                  >回報須經管理員審核，才會顯示在公開地圖。</span
-                >
-              </p>
-            </section>
-            <section class="shortcut-card">
-              <span class="shortcut-icon"
-                ><AdminIcon name="construction"
-              /></span>
-              <h2>管理校方施工公告</h2>
-              <p>查看官方公告，或隱藏不需顯示的施工標記。</p>
-              <button
-                type="button"
-                class="text-button"
-                @click="section = 'construction'"
-              >
-                前往公告管理<AdminIcon name="arrow" />
-              </button>
-            </section>
-            <p class="delete-note">
-              刪除回報會永久移除資料。若只需從地圖撤下，請使用「撤下標記」。
-            </p>
-          </aside>
         </div>
       </template>
       <section v-else class="access-panel">
@@ -363,15 +365,12 @@
           }}
         </p>
       </section>
-      <footer class="page-footer">
-        <span>中大智慧校園</span><span>一起維護更好通行的校園</span>
-      </footer>
     </div>
   </main>
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import AdminIcon from "../components/AdminIcon.vue";
 import CampusAccount from "../components/CampusAccount.vue";
 import OfficialConstructionAdmin from "../components/OfficialConstructionAdmin.vue";
@@ -387,6 +386,12 @@ import {
 const { session } = useCampusAccount();
 const admin = computed(() => Boolean(session.value?.account?.admin));
 const reports = ref([]);
+const users = ref([]);
+const usersLoaded = ref(false);
+const usersLoading = ref(false);
+const usersBusy = ref(false);
+const usersError = ref("");
+const usersMessage = ref("");
 const section = ref("reports");
 const deleteCandidate = ref(null);
 const filter = ref("");
@@ -414,6 +419,8 @@ const loading = ref(false);
 const loaded = ref(false);
 const lastLoaded = ref(null);
 const busy = ref(false);
+const refreshInterval = 10000;
+let refreshTimer = null;
 const stats = computed(() => [
   {
     id: "",
@@ -452,22 +459,75 @@ const stats = computed(() => [
   },
 ]);
 let loadId = 0;
+let usersLoadId = 0;
 
-async function loadReports() {
+async function loadUsers() {
+  if (!admin.value) return;
+  const id = ++usersLoadId;
+  usersLoading.value = true;
+  usersError.value = "";
+  try {
+    const result = await campusRequest("/admin/users");
+    if (id === usersLoadId && admin.value) {
+      users.value = result.users;
+      usersLoaded.value = true;
+    }
+  } catch (cause) {
+    if (id === usersLoadId && admin.value) usersError.value = cause.message;
+  } finally {
+    if (id === usersLoadId) usersLoading.value = false;
+  }
+}
+
+async function changeRole(user, event) {
+  const role = event.target.value;
+  event.target.value = user.role;
+  if (role === user.role) return;
+  usersBusy.value = true;
+  usersError.value = "";
+  usersMessage.value = "";
+  try {
+    await campusRequest(
+      "/admin/users/" +
+        encodeURIComponent(user.provider) +
+        "/" +
+        encodeURIComponent(user.subject),
+      "PATCH",
+      { role, previous_role: user.role }
+    );
+    await loadUsers();
+    if (!usersError.value) usersMessage.value = user.name + " 的權限已更新。";
+    else if (users.value.includes(user)) user.role = role;
+  } catch (cause) {
+    usersError.value = cause.message;
+  } finally {
+    usersBusy.value = false;
+  }
+}
+
+watch(section, (value) => {
+  if (value === "users" && admin.value) loadUsers();
+});
+
+async function loadReports({ silent = false } = {}) {
+  if (!admin.value || (silent && (loading.value || busy.value))) return;
   const id = ++loadId;
-  loading.value = true;
-  error.value = "";
+  if (!silent) {
+    loading.value = true;
+    error.value = "";
+  }
   try {
     const result = await campusRequest("/admin/reports");
     if (id === loadId && admin.value) {
       reports.value = result.reports;
       loaded.value = true;
       lastLoaded.value = new Date().toISOString();
+      error.value = "";
     }
   } catch (cause) {
     if (id === loadId && admin.value) error.value = cause.message;
   } finally {
-    if (id === loadId) loading.value = false;
+    if (id === loadId && !silent) loading.value = false;
   }
 }
 
@@ -514,10 +574,25 @@ async function remove(report) {
 watch(
   admin,
   (allowed) => {
-    if (allowed) loadReports();
-    else {
+    if (allowed) {
+      loadReports();
+      if (section.value === "users") loadUsers();
+      if (!refreshTimer) {
+        refreshTimer = window.setInterval(() => {
+          if (!document.hidden) loadReports({ silent: true });
+        }, refreshInterval);
+      }
+    } else {
+      window.clearInterval(refreshTimer);
+      refreshTimer = null;
       loadId += 1;
       reports.value = [];
+      usersLoadId += 1;
+      users.value = [];
+      usersLoaded.value = false;
+      usersLoading.value = false;
+      usersError.value = "";
+      usersMessage.value = "";
       loaded.value = false;
       lastLoaded.value = null;
       loading.value = false;
@@ -525,6 +600,20 @@ watch(
   },
   { immediate: true }
 );
+
+function refreshWhenVisible() {
+  if (!document.hidden) loadReports({ silent: true });
+}
+
+onMounted(() =>
+  document.addEventListener("visibilitychange", refreshWhenVisible)
+);
+onBeforeUnmount(() => {
+  window.clearInterval(refreshTimer);
+  document.removeEventListener("visibilitychange", refreshWhenVisible);
+  loadId += 1;
+  usersLoadId += 1;
+});
 </script>
 
 <style scoped src="../styles/campus-admin.css"></style>

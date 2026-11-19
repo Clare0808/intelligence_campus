@@ -4,13 +4,14 @@ from datetime import timedelta
 from urllib.parse import urlsplit
 
 from flask import Blueprint, current_app, jsonify, redirect, request, session
+from .campus_users import record_login, user_role
 
 account_bp = Blueprint("campus_account", __name__, url_prefix="/api/campus")
 PROVIDERS = {
     "google": (
         "Google",
         "https://accounts.google.com/.well-known/openid-configuration",
-        "openid profile",
+        "openid profile email",
     ),
     "portal": (
         "中大 Portal",
@@ -31,11 +32,6 @@ def configure_accounts(app):
         SESSION_COOKIE_SAMESITE="Lax",
         PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
         CAMPUS_ORIGIN=origin,
-        CAMPUS_ADMINS={
-            value.strip()
-            for value in os.getenv("CAMPUS_ADMINS", "").split(",")
-            if value.strip()
-        },
         CAMPUS_PREVIEW=False,
     )
     active = {}
@@ -77,7 +73,7 @@ def current_account():
             return None
         admin = account["subject"] == "reviewer"
     else:
-        admin = account_key(account) in current_app.config["CAMPUS_ADMINS"]
+        admin = user_role(account["provider"], account["subject"]) == "admin"
     return {**account, "admin": admin}
 
 
@@ -108,10 +104,13 @@ def session_data():
     }
 
 
-def sign_in(provider, subject, name):
+def sign_in(provider, subject, name, *, email=None, email_verified=False):
     session.clear()
     session.permanent = True
-    session["campus_account"] = {"provider": provider, "subject": subject, "name": name}
+    session["campus_account"] = {
+        "provider": provider, "subject": subject, "name": name,
+        "email": email, "email_verified": email_verified,
+    }
 
 
 @account_bp.after_request
@@ -147,30 +146,39 @@ def logout():
 
 @account_bp.get("/login/<provider>")
 def login(provider):
+    origin = current_app.config["CAMPUS_ORIGIN"]
     if provider not in current_app.config["CAMPUS_PROVIDERS"]:
-        return redirect("/campus?login=unavailable")
+        return redirect(f"{origin}/campus?login=unavailable")
     client = current_app.extensions["campus_oauth"].create_client(provider)
-    callback = f"{current_app.config['CAMPUS_ORIGIN']}/api/campus/callback/{provider}"
+    callback = f"{origin}/api/campus/callback/{provider}"
     try:
         return client.authorize_redirect(callback)
     except Exception:
         current_app.logger.warning("Campus login initiation failed for %s", provider)
-        return redirect("/campus?login=failed")
+        return redirect(f"{origin}/campus?login=failed")
 
 
 @account_bp.get("/callback/<provider>")
 def callback(provider):
+    origin = current_app.config["CAMPUS_ORIGIN"]
     if provider not in current_app.config["CAMPUS_PROVIDERS"]:
-        return redirect("/campus?login=unavailable")
+        return redirect(f"{origin}/campus?login=unavailable")
     client = current_app.extensions["campus_oauth"].create_client(provider)
     try:
         claims = client.authorize_access_token().get("userinfo", {})
         subject = claims.get("sub")
         if not isinstance(subject, str) or not subject:
-            return redirect("/campus?login=failed")
+            return redirect(f"{origin}/campus?login=failed")
         name = claims.get("name")
-        sign_in(provider, subject, name[:120] if isinstance(name, str) and name else PROVIDERS[provider][0])
+        email = claims.get("email")
+        name = name[:120] if isinstance(name, str) and name else PROVIDERS[provider][0]
+        email = email if isinstance(email, str) else None
+        verified = claims.get("email_verified") is True
+        record_login(provider, subject, name, email, verified)
+        sign_in(
+            provider, subject, name, email=email, email_verified=verified,
+        )
     except Exception:
         current_app.logger.warning("Campus login callback failed for %s", provider)
-        return redirect("/campus?login=failed")
-    return redirect("/campus")
+        return redirect(f"{origin}/campus?login=failed")
+    return redirect(f"{origin}/campus?login=success")

@@ -10,8 +10,9 @@
   line-height: 1.6;
 }
 .admin-content {
-  max-width: 1320px;
-  padding: 0 clamp(20px, 4vw, 48px);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 clamp(16px, 2vw, 32px);
   margin: auto;
 }
 .topbar,
@@ -66,9 +67,13 @@
   font-size: 12px;
 }
 .account-area {
+  margin-left: auto;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
+}
+.account-area :deep(.account-row) {
+  justify-content: flex-end;
 }
 .role-badge {
   border-radius: 20px;
@@ -136,6 +141,9 @@ h1 {
 }
 .back-link {
   flex-shrink: 0;
+}
+.topbar .back-link {
+  margin-right: auto;
 }
 .overview {
   display: grid;
@@ -255,17 +263,59 @@ h1 {
 }
 .manager-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
   align-items: start;
 }
 .report-panel,
-.construction-panel {
+.construction-panel,
+.users-panel {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 12px;
   min-width: 0;
   overflow: hidden;
+}
+.users-content {
+  padding: 20px 24px;
+}
+.users-content > p {
+  margin: 0 0 14px;
+}
+.users-list {
+  display: grid;
+}
+.user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.user-details,
+.user-role {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.user-details span,
+.user-details small,
+.user-role small {
+  overflow-wrap: anywhere;
+}
+.user-details small,
+.user-role small {
+  color: var(--muted);
+}
+.user-role select {
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
 }
 .panel-heading {
   padding: 22px 24px 20px;
@@ -355,6 +405,7 @@ h1 {
 }
 .reload-button {
   padding-inline: 11px;
+  flex-shrink: 0;
 }
 button:disabled {
   opacity: 0.55;
@@ -756,10 +807,6 @@ button:disabled {
   font-size: 14px;
 }
 @media (max-width: 1050px) {
-  .manager-grid {
-    grid-template-columns: minmax(0, 1fr) 240px;
-    gap: 16px;
-  }
   .stat-card {
     padding-inline: 16px;
   }
@@ -773,9 +820,6 @@ button:disabled {
   }
 }
 @media (max-width: 850px) {
-  .manager-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .management-help {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
@@ -799,12 +843,8 @@ button:disabled {
 }
 @media (max-width: 560px) {
   .topbar {
-    align-items: flex-start;
     gap: 14px;
-    flex-direction: column;
-  }
-  .account-area {
-    justify-content: flex-start;
+    flex-wrap: wrap;
   }
   .page-intro {
     padding-top: 27px;
@@ -827,7 +867,8 @@ button:disabled {
   }
   .manager-tabs {
     width: 100%;
-    gap: 20px;
+    gap: 12px;
+    flex-wrap: wrap;
   }
   .manager-tabs button {
     font-size: 13px;
@@ -851,7 +892,7 @@ button:disabled {
   .status-field {
     flex: 1;
   }
-  .reload-button {
+  .report-panel .reload-button {
     flex: 1;
   }
   .empty-state {

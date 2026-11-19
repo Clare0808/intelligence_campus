@@ -1,21 +1,31 @@
 <template>
   <section class="construction-admin" aria-label="校方施工公告管理">
     <div class="toolbar">
-      <label>
-        顯示狀態
-        <select v-model="filter">
-          <option value="">全部公告</option>
-          <option value="visible">顯示中</option>
-          <option value="hidden">已隱藏</option>
-        </select>
-      </label>
-      <label>
-        搜尋公告
-        <input v-model.trim="query" type="search" />
-      </label>
-      <button type="button" :disabled="loading" @click="load">重新載入</button>
+      <div class="filters">
+        <label>
+          搜尋公告
+          <input v-model.trim="query" type="search" />
+        </label>
+        <label>
+          顯示狀態
+          <select v-model="filter">
+            <option value="">全部公告</option>
+            <option value="visible">顯示中</option>
+            <option value="hidden">已隱藏</option>
+          </select>
+        </label>
+      </div>
+      <button
+        class="reload-button"
+        type="button"
+        :disabled="loading"
+        @click="load"
+      >
+        <AdminIcon name="refresh" />
+        {{ loading ? "載入中…" : "重新載入" }}
+      </button>
     </div>
-    <p>隱藏後會移除地圖上的公告與施工標記。自動更新後仍保留隱藏設定。</p>
+    <p>隱藏後會移除地圖上的公告與施工標記。</p>
     <p v-if="latest">最近成功更新 {{ formatTime(latest) }}</p>
     <p v-if="message" role="status">{{ message }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
@@ -30,7 +40,6 @@
               notice.hidden ? "已隱藏" : "顯示中"
             }}</span>
           </div>
-          <p>{{ notice.source_name || "專案原有公告" }}</p>
           <p>
             {{ notice.construction?.start_date || "起日待確認" }}
             ～ {{ notice.construction?.end_date || "迄日待確認" }}
@@ -61,6 +70,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import AdminIcon from "./AdminIcon.vue";
 import { campusRequest, formatTime } from "../services/campusTools.js";
 
 const notices = ref([]);
@@ -131,6 +141,7 @@ onMounted(load);
   line-height: 1.55;
 }
 .toolbar,
+.filters,
 .toolbar label,
 .notice-top,
 .actions {
@@ -140,9 +151,37 @@ onMounted(load);
   gap: 8px;
 }
 .toolbar {
+  justify-content: space-between;
   margin: 20px 0;
 }
-.construction-admin button,
+.filters {
+  min-width: 0;
+}
+.toolbar > button {
+  margin-left: auto;
+}
+.toolbar label {
+  min-width: 0;
+}
+.toolbar .reload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s;
+}
+.toolbar .reload-button:hover:not(:disabled) {
+  background: #eef4ef;
+  border-color: #8da69a;
+}
+.construction-admin button:not(.reload-button),
 .construction-admin select,
 .construction-admin input,
 .actions a {
@@ -158,7 +197,10 @@ onMounted(load);
   display: inline-flex;
   align-items: center;
 }
-.construction-admin button:hover:not(:disabled),
+.notices .actions button {
+  margin-left: auto;
+}
+.construction-admin button:not(.reload-button):hover:not(:disabled),
 .actions a:hover {
   border-color: #205b77;
 }

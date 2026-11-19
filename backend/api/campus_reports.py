@@ -1,8 +1,11 @@
+import json
 import math
 import os
 import re
 import sqlite3
-from contextlib import contextmanager
+import tempfile
+import time
+from contextlib import closing, contextmanager
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
@@ -15,71 +18,162 @@ reports_bp = Blueprint("campus_reports", __name__, url_prefix="/api/campus")
 KINDS = {"construction": "施工", "damage": "毀壞", "idle": "閒置"}
 STATUS = {"pending": "待審核", "approved": "已公開", "rejected": "已退回"}
 UNSUPPORTED_TEXT = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
-REPORT_SCHEMA = """
-    CREATE TABLE reports (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        kind TEXT NOT NULL,
-        title TEXT NOT NULL,
-        details TEXT NOT NULL,
-        longitude REAL NOT NULL,
-        latitude REAL NOT NULL,
-        road_closed INTEGER NOT NULL,
-        reporter TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending',
-        created_at TEXT NOT NULL,
-        reviewed_at TEXT,
-        reviewer TEXT
-    )
-"""
+REPORT_FIELDS = (
+    "id", "kind", "title", "details", "longitude", "latitude", "road_closed",
+    "reporter", "status", "created_at", "reviewed_at", "reviewer", "deleted_at", "deleted_by",
+)
 
 
 def configure_reports(app):
-    app.config["CAMPUS_REPORTS_DB"] = os.getenv(
-        "CAMPUS_REPORTS_DB", str(Path(app.instance_path) / "campus-reports.sqlite3")
+    configured = os.getenv("CAMPUS_REPORTS_FILE")
+    app.config["CAMPUS_REPORTS_FILE"] = str(
+        Path(configured).resolve() if configured else Path(app.instance_path) / "campus-reports.json"
     )
     app.register_blueprint(reports_bp)
 
 
-@contextmanager
-def database():
-    path = Path(current_app.config["CAMPUS_REPORTS_DB"])
+def legacy_json(path):
+    # Older launches from frontend/ wrote to its instance directory.
+    if path.parent != Path(current_app.instance_path):
+        return None
+    candidate = Path(current_app.root_path).parent / "frontend" / "instance" / path.name
+    return candidate if candidate.is_file() else None
+
+
+def legacy_databases(path):
+    configured = os.getenv("CAMPUS_REPORTS_DB")
+    if configured:
+        return [Path(configured).resolve()]
+    name = "preview-reports.sqlite3" if path.name == "preview-reports.json" else "campus-reports.sqlite3"
+    backend = path.parent / name
+    frontend = Path(current_app.root_path).parent / "frontend" / "instance" / name
+    # When both locations exist, prefer the most recently written live database.
+    if frontend.is_file() and backend.is_file():
+        return [max((frontend, backend), key=lambda candidate: candidate.stat().st_mtime)]
+    return [frontend, backend] if frontend.exists() else [backend, frontend]
+
+
+def import_legacy(path):
+    for old in legacy_databases(path):
+        if not old.is_file():
+            continue
+        with closing(sqlite3.connect(old.as_uri() + "?mode=ro", uri=True)) as connection:
+            connection.row_factory = sqlite3.Row
+            table = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='reports'"
+            ).fetchone()
+            if not table:
+                raise ValueError(f"舊回報資料庫缺少 reports 資料表：{old}")
+            deleted = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='report_deletions'"
+            ).fetchone()
+            joins = (
+                "LEFT JOIN report_deletions ON reports.id = report_deletions.report_id"
+                if deleted else ""
+            )
+            deletions = (
+                "report_deletions.deleted_at, report_deletions.deleted_by"
+                if deleted else "NULL AS deleted_at, NULL AS deleted_by"
+            )
+            rows = connection.execute(
+                f"SELECT reports.*, {deletions} FROM reports {joins} ORDER BY reports.id DESC"
+            ).fetchall()
+            reports = [
+                {key: (bool(row[key]) if key == "road_closed" else row[key]) for key in REPORT_FIELDS}
+                for row in rows
+            ]
+            sequence_table = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'"
+            ).fetchone()
+            sequence = connection.execute(
+                "SELECT seq FROM sqlite_sequence WHERE name='reports'"
+            ).fetchone() if sequence_table else None
+            next_id = max((row["id"] for row in reports), default=0) + 1
+            if sequence:
+                next_id = max(next_id, sequence[0] + 1)
+            return {"next_id": next_id, "reports": reports}
+    return {"next_id": 1, "reports": []}
+
+
+def save_reports(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path, timeout=10)
-    connection.row_factory = sqlite3.Row
+    temporary = None
     try:
-        with connection:
-            connection.execute(REPORT_SCHEMA.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS", 1))
-            schema = connection.execute(
-                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'reports'"
-            ).fetchone()[0]
-            if "AUTOINCREMENT" not in schema.upper():
-                # Retried deletes must never target a later report reusing an old ID.
-                connection.execute("BEGIN IMMEDIATE")
-                schema = connection.execute(
-                    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'reports'"
-                ).fetchone()[0]
-                if "AUTOINCREMENT" not in schema.upper():
-                    connection.execute("ALTER TABLE reports RENAME TO reports_before_id_migration")
-                    connection.execute(REPORT_SCHEMA)
-                    connection.execute("""
-                        INSERT INTO reports
-                            (id, kind, title, details, longitude, latitude, road_closed,
-                             reporter, status, created_at, reviewed_at, reviewer)
-                        SELECT id, kind, title, details, longitude, latitude, road_closed,
-                               reporter, status, created_at, reviewed_at, reviewer
-                        FROM reports_before_id_migration
-                    """)
-                    connection.execute("DROP TABLE reports_before_id_migration")
-            connection.execute("""
-                CREATE TABLE IF NOT EXISTS report_deletions (
-                    report_id INTEGER PRIMARY KEY,
-                    deleted_at TEXT NOT NULL,
-                    deleted_by TEXT NOT NULL
-                )
-            """)
-            yield connection
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent, prefix=path.name + ".",
+            suffix=".tmp", delete=False,
+        ) as output:
+            temporary = Path(output.name)
+            json.dump(data, output, ensure_ascii=False, indent=2, allow_nan=False)
+            output.write("\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
     finally:
-        connection.close()
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def read_reports(path):
+    if not path.exists():
+        old_json = legacy_json(path)
+        if old_json:
+            data = read_reports(old_json)
+            save_reports(path, data)
+            return data
+        data = import_legacy(path)
+        save_reports(path, data)
+        return data
+    with path.open(encoding="utf-8") as source:
+        data = json.load(source)
+    if (
+        not isinstance(data, dict) or type(data.get("next_id")) is not int
+        or data["next_id"] < 1 or not isinstance(data.get("reports"), list)
+        or any(not isinstance(row, dict) or not set(REPORT_FIELDS) <= row.keys()
+               or type(row["id"]) is not int for row in data["reports"])
+    ):
+        raise ValueError("回報檔案格式無效；原檔保留，未進行寫入。")
+    ids = [row["id"] for row in data["reports"]]
+    if len(ids) != len(set(ids)) or any(
+        row_id < 1 or row_id >= data["next_id"] for row_id in ids
+    ):
+        raise ValueError("回報檔案編號無效；原檔保留，未進行寫入。")
+    return data
+
+
+@contextmanager
+def report_store(*, write=False):
+    path = Path(current_app.config["CAMPUS_REPORTS_FILE"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Keep a separate lock file: replacing the JSON must not change the lock inode.
+    with (path.parent / (path.name + ".lock")).open("a+b") as lock:
+        if os.name == "nt":
+            import msvcrt
+
+            for attempt in range(100):
+                try:
+                    lock.seek(0)
+                    msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    if attempt == 99:
+                        raise TimeoutError("回報檔案正忙碌，請稍後重試。")
+                    time.sleep(0.1)
+        else:
+            import fcntl
+
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            data = read_reports(path)
+            yield data
+            if write:
+                save_reports(path, data)
+        finally:
+            if os.name == "nt":
+                lock.seek(0)
+                msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
 def now():
@@ -103,12 +197,8 @@ def valid_text(value, limit):
     )
 
 
-def report_rows(connection):
-    return connection.execute("""
-        SELECT reports.*, deleted_at, deleted_by
-        FROM reports LEFT JOIN report_deletions ON reports.id = report_id
-        ORDER BY reports.id DESC
-    """)
+def report_rows(data):
+    return sorted(data["reports"], key=lambda row: row["id"], reverse=True)
 
 
 def authorization_error(account, *, admin=False, write=False):
@@ -129,15 +219,14 @@ def disable_report_caching(response):
 
 @reports_bp.get("/reports/map")
 def published_reports():
-    with database() as connection:
-        rows = connection.execute("""
-            SELECT id, kind, title, details, longitude, latitude, road_closed,
-                   created_at, reviewed_at
-            FROM reports WHERE status = 'approved'
-            AND NOT EXISTS (SELECT 1 FROM report_deletions WHERE report_id = reports.id)
-            ORDER BY id DESC
-        """)
-        return jsonify(reports=[dict(row) for row in rows])
+    with report_store() as data:
+        fields = ("id", "kind", "title", "details", "longitude", "latitude",
+                  "road_closed", "created_at", "reviewed_at")
+        return jsonify(reports=[
+            {key: row[key] for key in fields}
+            for row in report_rows(data)
+            if row["status"] == "approved" and not row["deleted_at"]
+        ])
 
 
 @reports_bp.post("/reports")
@@ -164,16 +253,16 @@ def submit_report():
         or (road_closed and kind != "construction")
     ):
         return jsonify(message="請填寫有效的類別、標題、說明及校園位置。"), 400
-    with database() as connection:
-        result = connection.execute("""
-            INSERT INTO reports (kind, title, details, longitude, latitude,
-                                 road_closed, reporter, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            kind, title.strip(), details.strip(), longitude, latitude,
-            road_closed, account_key(account), now(),
-        ))
-        report_id = result.lastrowid
+    with report_store(write=True) as store:
+        report_id = store["next_id"]
+        store["next_id"] += 1
+        store["reports"].append({
+            "id": report_id, "kind": kind, "title": title.strip(),
+            "details": details.strip(), "longitude": longitude, "latitude": latitude,
+            "road_closed": road_closed, "reporter": account_key(account),
+            "status": "pending", "created_at": now(), "reviewed_at": None,
+            "reviewer": None, "deleted_at": None, "deleted_by": None,
+        })
     return jsonify(id=report_id, status="pending"), 201
 
 
@@ -182,8 +271,8 @@ def admin_reports():
     error = authorization_error(current_account(), admin=True)
     if error:
         return error
-    with database() as connection:
-        return jsonify(reports=[dict(row) for row in report_rows(connection)])
+    with report_store() as data:
+        return jsonify(reports=report_rows(data))
 
 
 @reports_bp.patch("/admin/reports/<int:report_id>")
@@ -201,14 +290,11 @@ def review_report(report_id):
         or status == previous_status
     ):
         return jsonify(message="審核狀態無效。"), 400
-    with database() as connection:
-        update = connection.execute("""
-            UPDATE reports SET status = ?, reviewed_at = ?, reviewer = ?
-            WHERE id = ? AND status = ?
-            AND NOT EXISTS (SELECT 1 FROM report_deletions WHERE report_id = reports.id)
-        """, (status, now(), account_key(account), report_id, previous_status))
-        if not update.rowcount:
+    with report_store(write=True) as store:
+        row = next((row for row in store["reports"] if row["id"] == report_id), None)
+        if not row or row["status"] != previous_status or row["deleted_at"]:
             return jsonify(message="此筆回報已變更或不存在，請重新載入。"), 409
+        row.update(status=status, reviewed_at=now(), reviewer=account_key(account))
     return jsonify(status=status)
 
 
@@ -221,14 +307,12 @@ def delete_report(report_id):
     previous = json_body().get("previous_status")
     if previous not in tuple(STATUS):
         return jsonify(message="回報狀態無效。"), 400
-    with database() as connection:
-        result = connection.execute("""
-            DELETE FROM reports WHERE id = ? AND status = ?
-        """, (report_id, previous))
-        if not result.rowcount:
+    with report_store(write=True) as store:
+        row = next((row for row in store["reports"] if row["id"] == report_id), None)
+        if not row or row["status"] != previous:
             return jsonify(message="此筆回報已變更或不存在，請重新載入。"), 409
-        connection.execute("DELETE FROM report_deletions WHERE report_id = ?", (report_id,))
-    return jsonify(message="回報已從資料庫永久刪除。")
+        store["reports"].remove(row)
+    return jsonify(message="回報已從檔案永久刪除。")
 
 
 @reports_bp.get("/admin/construction")
@@ -280,8 +364,8 @@ def export_reports():
     sheet.title = "校園回報"
     sheet.append(["編號", "類別", "標題", "說明", "經度", "緯度", "道路封閉", "審核狀態",
                   "回報帳號", "回報時間 (UTC)", "審核帳號", "審核時間 (UTC)"])
-    with database() as connection:
-        for row in report_rows(connection):
+    with report_store() as data:
+        for row in report_rows(data):
             if row["deleted_at"]:
                 continue
             sheet.append([

@@ -18,7 +18,7 @@
             "end_date": "2026-10-18",
             "description": null
         },
-        "confidence": 1,
+        "confidence": 0.95,
         "needs_review": false,
         "review_reason": null,
         "processing_status": "success"
@@ -34,7 +34,7 @@
             "raw_text": "中大湖湖岸步道",
             "building": null,
             "relative_area": null,
-            "specific_target": "舊木板",
+            "specific_target": "步道舊木板",
             "location_id": null
         },
         "construction": {
@@ -43,8 +43,8 @@
             "description": "整修拆卸舊木板"
         },
         "confidence": 0.8,
-        "needs_review": false,
-        "review_reason": null,
+        "needs_review": true,
+        "review_reason": "公告中未提供施工具體日期及詳細地點資訊，僅有標題描述。",
         "processing_status": "success"
     },
     {
@@ -57,8 +57,8 @@
         "location": {
             "raw_text": "西區第二期研究中心一期、研究中心二期高壓變電站",
             "building": null,
-            "relative_area": null,
-            "specific_target": "高壓變電站電力",
+            "relative_area": "西區第二期",
+            "specific_target": "高壓變電站",
             "location_id": null
         },
         "construction": {
@@ -68,7 +68,7 @@
         },
         "confidence": 0.8,
         "needs_review": true,
-        "review_reason": "公告標題提及停電公告日期變動更正，但未提供具體施工或停電日期，且無詳細地點建築物名稱，需進一步確認公告內容。",
+        "review_reason": "公告標題提及停電公告日期變動更正，但未提供具體施工或停電日期，且無內文說明，無法確定具體施工時間與詳細地點。",
         "processing_status": "success"
     },
     {
@@ -90,7 +90,7 @@
             "end_date": "2026-10-15",
             "description": "停車場地坪修繕"
         },
-        "confidence": 0.95,
+        "confidence": 0.9,
         "needs_review": false,
         "review_reason": null,
         "processing_status": "success"
@@ -140,7 +140,7 @@
         },
         "confidence": 0.9,
         "needs_review": true,
-        "review_reason": "公告標題未明確提供施工結束日期，且缺少詳細施工範圍與具體位置描述。",
+        "review_reason": "公告中未提供施工結束日期及更詳細施工範圍資訊。",
         "processing_status": "success"
     },
     {
@@ -160,7 +160,7 @@
         "construction": {
             "start_date": "2026-07-08",
             "end_date": "2026-08-07",
-            "description": "男九舍機車停車場坡坎施工"
+            "description": null
         },
         "confidence": 0.9,
         "needs_review": false,
@@ -216,30 +216,6 @@
         "processing_status": "success"
     },
     {
-        "Id": "93bdb208-2e5c-4206-9b03-296a4afa4a83",
-        "PublishDepartment": "營繕組",
-        "PublishDate": "2026-05-18",
-        "NewsTitle": "115年05月18日至115年8月30日科一館S600-2生物地球化學實驗室建置案 施工公告",
-        "NewsContent": "<p><strong>施工公告<br />\n<br />\n工程名稱：科一館S600-2生物地球化學實驗室建置案<br />\n<br />\n施工期間：115年05月18日開工，預定於115年8月30日完工。<br />\n<br />\n施工範圍：科一館中庭靠大講堂側S600-2周邊<br />\n<br />\n注意事項：<br />\nㄧ、施工期間請配合避免進入施工區域，以免產生危險。<br />\n二、科一館S600-2周邊會有較為持續鑽孔、洗洞、打鑿所產生噪音。<br />\n三、工區周邊會有廢棄物及材料暫置通過時請注意，上開各點造成不便之處，敬請見諒，謝謝。<br />\n<br />\n<br />\n聯絡單位：<br />\n廠商千馳實業有限公司 蔡嘉錫 0932-029-901<br />\n採購承辦單位 總務處營繕組 李信鐘 57328 0963-693980<br />\n<br />\n總務處啟</strong></p>",
-        "announcement_type": "construction",
-        "location": {
-            "raw_text": "科一館S600-2生物地球化學實驗室",
-            "building": "科一館",
-            "relative_area": null,
-            "specific_target": "S600-2生物地球化學實驗室",
-            "location_id": null
-        },
-        "construction": {
-            "start_date": "2026-05-18",
-            "end_date": "2026-08-30",
-            "description": "科一館S600-2生物地球化學實驗室建置案施工"
-        },
-        "confidence": 0.9,
-        "needs_review": false,
-        "review_reason": null,
-        "processing_status": "success"
-    },
-    {
         "Id": "78d56cc4-0ec4-4c1e-8132-07408f5665a8",
         "PublishDepartment": "營繕組",
         "PublishDate": "2026-05-19",
@@ -249,38 +225,14 @@
         "location": {
             "raw_text": "西區第二期高壓變電站",
             "building": null,
-            "relative_area": "西區",
+            "relative_area": "西區第二期",
             "specific_target": "高壓變電站",
             "location_id": null
         },
         "construction": {
             "start_date": "2026-05-20",
             "end_date": "2026-06-16",
-            "description": "115年5月20日至115年6月16日西區第二期高壓變電站改善施工"
-        },
-        "confidence": 0.9,
-        "needs_review": false,
-        "review_reason": null,
-        "processing_status": "success"
-    },
-    {
-        "Id": "49318045-8e9d-4c7e-94e6-96d68e01de14",
-        "PublishDepartment": "營繕組",
-        "PublishDate": "2026-05-12",
-        "NewsTitle": "115年5月13日至115年7月31日男九舍機車停車場整建工程 施工公告",
-        "NewsContent": "<p>施工公告<br />\n<br />\n一.工程名稱: 男九舍機車停車場整建工程<br />\n二.施工期間: 115年5月13日至115年7月31日<br />\n三.施工地點: 男九舍後面機車停車場<br />\n四.說明:<br />\n1.施工期間非施工人員請勿進入施工區域，以免發生危險。<br />\n2.騎行機車請減速慢行，注意安全。<br />\n3.公告禁止停車的區域，請勿停放車輛(圖示)</p>\n\n<p><img alt=\"男九舍後面機車停車場圖片1\" src=\"files/image/男九舍後面機車停車場圖片1.jpg\" style=\"width: 1325px; height: 1007px;\" /><br />\n<img alt=\"男九舍後面機車停車場圖片2\" src=\"files/image/男九舍後面機車停車場圖片2.jpg\" style=\"width: 1322px; height: 1005px;\" /></p>\n\n<p>施工期間造成不便之處 敬請見諒!!</p>\n\n<p><br />\n施工廠商:德溢營造股份有限公司<br />\n聯絡人:石棟宇 0978750513<br />\n總務處營繕組 蕭先生 分機57397</p>",
-        "announcement_type": "construction",
-        "location": {
-            "raw_text": "男九舍機車停車場",
-            "building": "男九舍",
-            "relative_area": null,
-            "specific_target": "機車停車場",
-            "location_id": null
-        },
-        "construction": {
-            "start_date": "2026-05-13",
-            "end_date": "2026-07-31",
-            "description": "男九舍機車停車場整建工程"
+            "description": "西區第二期高壓變電站改善施工"
         },
         "confidence": 0.9,
         "needs_review": false,

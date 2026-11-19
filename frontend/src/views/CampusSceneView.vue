@@ -50,9 +50,22 @@
         :inert="!sidebarOpen"
       >
         <nav class="campus-navigation" aria-label="校園頁面導覽">
-          <RouterLink :to="{ name: 'campus-admin' }">管理後台</RouterLink>
+          <RouterLink v-if="isAdmin" :to="{ name: 'campus-admin' }"
+            >管理後台</RouterLink
+          >
+          <button
+            type="button"
+            :aria-expanded="activePanel === 'report'"
+            :aria-controls="
+              activePanel === 'report' ? 'campus-tool-panel' : undefined
+            "
+            @click="activePanel = activePanel === 'report' ? '' : 'report'"
+          >
+            登入與回報
+          </button>
         </nav>
         <CampusTools
+          v-model:panel="activePanel"
           :map-point="toolPoint"
           :map-marker="toolMarker"
           :reset-count="resetTools"
@@ -63,112 +76,122 @@
           @pick-location="startPick"
           @show-map="sidebarOpen = false"
         />
-        <div class="construction-refresh">
-          <button
-            class="refresh-button"
-            type="button"
-            :disabled="refreshState !== 'idle'"
-            @click="refreshConstruction"
-          >
-            {{ refreshState === "idle" ? "更新施工公告" : "正在更新施工公告…" }}
-          </button>
-          <p v-if="refreshError" role="alert">
-            {{ refreshError }}
-          </p>
-        </div>
-        <OfficialConstructionNotices
-          :announcements="constructionAnnouncements"
-          :refresh="constructionRefresh"
-        />
-        <input
-          id="building-search"
-          v-model="query"
-          type="search"
-          placeholder="搜尋地點…"
-        />
-        <div class="list" aria-label="依類別排列的校園地點">
-          <section
-            v-for="group in groupedBuildings"
-            :key="group.id"
-            class="category-group"
-          >
-            <h2 class="category-heading">
-              <button
-                class="category-toggle"
-                :style="{ '--category-color': group.color }"
-                type="button"
-                :aria-expanded="isGroupExpanded(group.id)"
-                :aria-controls="`category-items-${group.id}`"
-                @click="toggleGroup(group.id)"
-              >
-                <span>{{ group.label }}</span>
-                <span class="category-actions">
-                  <span class="category-chevron" aria-hidden="true">▼</span>
-                </span>
-              </button>
-            </h2>
-            <div
-              :id="`category-items-${group.id}`"
-              v-show="isGroupExpanded(group.id)"
+        <div
+          v-if="activePanel === 'construction'"
+          id="construction-panel"
+          class="construction-panel"
+        >
+          <div class="construction-refresh">
+            <button
+              class="refresh-button"
+              type="button"
+              :disabled="refreshState !== 'idle'"
+              @click="refreshConstruction"
             >
-              <button
-                v-for="building in group.features"
-                :key="building.properties.id"
-                class="building-row"
-                :class="{ active: selectedId === building.properties.id }"
-                :aria-pressed="selectedId === building.properties.id"
-                type="button"
-                @click="onSelect(building.properties.id)"
-              >
-                {{ building.properties.name }} <span aria-hidden="true"></span>
-              </button>
-            </div>
-          </section>
-          <p v-if="!groupedBuildings.length" class="empty">
-            {{ buildings.length ? "找不到符合的地點" : "載入地點資料中…" }}
-          </p>
-        </div>
-        <div v-if="selectedBuilding" class="details" aria-live="polite">
-          <span class="eyebrow">{{ selectedCategory?.label ?? "建築" }}</span>
-          <h2>{{ selectedBuilding.properties.name || "未命名建築" }}</h2>
-          <section class="construction-details" aria-label="施工資訊">
-            <h3>施工資訊</h3>
-            <p v-if="!selectedAnnouncements.length">尚無施工資訊</p>
-            <article
-              v-for="(announcement, index) in selectedAnnouncements"
-              :key="`${announcement.Id ?? 'announcement'}-${index}`"
-              class="construction-announcement"
+              {{
+                refreshState === "idle" ? "更新施工公告" : "正在更新施工公告…"
+              }}
+            </button>
+            <p v-if="refreshError" role="alert">
+              {{ refreshError }}
+            </p>
+          </div>
+          <OfficialConstructionNotices
+            :announcements="constructionAnnouncements"
+            :refresh="constructionRefresh"
+          />
+          <input
+            id="building-search"
+            v-model="query"
+            type="search"
+            placeholder="搜尋地點…"
+            aria-label="搜尋地點"
+          />
+          <div class="list" aria-label="依類別排列的校園地點">
+            <section
+              v-for="group in groupedBuildings"
+              :key="group.id"
+              class="category-group"
             >
-              <h4>{{ announcement.NewsTitle || "施工公告" }}</h4>
-              <p v-if="announcement.construction?.description">
-                {{ announcement.construction.description }}
-              </p>
-              <p v-if="announcement.location?.raw_text">
-                地點：{{ announcement.location.raw_text }}
-              </p>
-              <p
-                v-if="
-                  announcement.construction?.start_date ||
-                  announcement.construction?.end_date
-                "
+              <h2 class="category-heading">
+                <button
+                  class="category-toggle"
+                  :style="{ '--category-color': group.color }"
+                  type="button"
+                  :aria-expanded="isGroupExpanded(group.id)"
+                  :aria-controls="`category-items-${group.id}`"
+                  @click="toggleGroup(group.id)"
+                >
+                  <span>{{ group.label }}</span>
+                  <span class="category-actions">
+                    <span class="category-chevron" aria-hidden="true">▼</span>
+                  </span>
+                </button>
+              </h2>
+              <div
+                :id="`category-items-${group.id}`"
+                v-show="isGroupExpanded(group.id)"
               >
-                施工期間：{{
-                  announcement.construction?.start_date || "未提供"
-                }}
-                ～ {{ announcement.construction?.end_date || "未提供" }}
-              </p>
-              <p v-if="announcement.needs_review" class="review-note">
-                此公告資訊尚待確認
-              </p>
-            </article>
-          </section>
+                <button
+                  v-for="building in group.features"
+                  :key="building.properties.id"
+                  class="building-row"
+                  :class="{ active: selectedId === building.properties.id }"
+                  :aria-pressed="selectedId === building.properties.id"
+                  type="button"
+                  @click="onSelect(building.properties.id)"
+                >
+                  {{ building.properties.name }}
+                  <span aria-hidden="true"></span>
+                </button>
+              </div>
+            </section>
+            <p v-if="!groupedBuildings.length" class="empty">
+              {{ buildings.length ? "找不到符合的地點" : "載入地點資料中…" }}
+            </p>
+          </div>
+          <div v-if="selectedBuilding" class="details" aria-live="polite">
+            <span class="eyebrow">{{ selectedCategory?.label ?? "建築" }}</span>
+            <h2>{{ selectedBuilding.properties.name || "未命名建築" }}</h2>
+            <section class="construction-details" aria-label="施工資訊">
+              <h3>施工資訊</h3>
+              <p v-if="!selectedAnnouncements.length">尚無施工資訊</p>
+              <article
+                v-for="(announcement, index) in selectedAnnouncements"
+                :key="`${announcement.Id ?? 'announcement'}-${index}`"
+                class="construction-announcement"
+              >
+                <h4>{{ announcement.NewsTitle || "施工公告" }}</h4>
+                <p v-if="announcement.construction?.description">
+                  {{ announcement.construction.description }}
+                </p>
+                <p v-if="announcement.location?.raw_text">
+                  地點：{{ announcement.location.raw_text }}
+                </p>
+                <p
+                  v-if="
+                    announcement.construction?.start_date ||
+                    announcement.construction?.end_date
+                  "
+                >
+                  施工期間：{{
+                    announcement.construction?.start_date || "未提供"
+                  }}
+                  ～ {{ announcement.construction?.end_date || "未提供" }}
+                </p>
+                <p v-if="announcement.needs_review" class="review-note">
+                  此公告資訊尚待確認
+                </p>
+              </article>
+            </section>
+          </div>
         </div>
       </aside>
       <button
         class="sidebar-toggle"
         :class="{ 'sidebar-toggle-closed': !sidebarOpen }"
         type="button"
-        :aria-label="sidebarOpen ? '收起建築搜尋側邊欄' : '展開建築搜尋側邊欄'"
+        :aria-label="sidebarOpen ? '收起功能側邊欄' : '展開功能側邊欄'"
         aria-controls="building-sidebar"
         :aria-expanded="sidebarOpen"
         @click="sidebarOpen = !sidebarOpen"
@@ -209,9 +232,15 @@ import CampusTools from "../components/CampusTools.vue";
 import OfficialConstructionNotices from "../components/OfficialConstructionNotices.vue";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
+import { useRoute } from "vue-router";
 import { categories } from "../map/categories";
 import { refreshConstructionData } from "../map/layers";
+import { useCampusAccount } from "../services/campusTools.js";
 const buildings = ref([]);
+const { session } = useCampusAccount();
+const isAdmin = computed(() => session.value?.account?.admin === true);
+const route = useRoute();
+const activePanel = ref(route.query.login ? "report" : "");
 const constructionAnnouncements = ref([]);
 const constructionRefresh = ref(null);
 const selectedId = ref("");
@@ -332,24 +361,40 @@ function onSelect(id) {
 </script>
 <style scoped>
 .campus-navigation {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 6px;
   margin-bottom: 12px;
 }
-.campus-navigation a {
+.campus-navigation a,
+.campus-navigation button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 100%;
   min-height: 44px;
-  padding: 6px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--panel);
   color: var(--glow);
   text-decoration: none;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
 }
-.campus-navigation a:hover {
+.campus-navigation a:hover,
+.campus-navigation button:hover,
+.campus-navigation button[aria-expanded="true"] {
   border-color: var(--glow);
+}
+.construction-panel {
+  margin-top: 8px;
+  margin-bottom: 14px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
 }
 .pick-location {
   position: absolute;
@@ -438,9 +483,6 @@ function onSelect(id) {
 .sidebar-closed {
   visibility: hidden;
   transform: translateX(-100%);
-}
-.construction-refresh {
-  margin-bottom: 14px;
 }
 .refresh-button {
   width: 100%;
