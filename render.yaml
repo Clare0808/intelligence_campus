@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: intelligence-campus
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: CAMPUS_DATA_DIR
+        value: /data
+      - key: CAMPUS_START_CONSTRUCTION_FEED
+        value: "1"
+      - key: CAMPUS_DISABLE_LEGACY_REFRESH
+        value: "1"
+      - key: CAMPUS_SESSION_SECRET
+        generateValue: true
+      - key: CAMPUS_ORIGIN
+        sync: false
+    disk:
+      name: campus-data
+      mountPath: /data
+      sizeGB: 1

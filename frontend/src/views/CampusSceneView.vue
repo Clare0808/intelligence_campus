@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <main
     class="campus-page"
     :class="{ 'theme-light': theme === 'light' }"
@@ -82,7 +82,7 @@
           id="construction-panel"
           class="construction-panel"
         >
-          <div class="construction-refresh">
+          <div v-if="canRefreshConstruction" class="construction-refresh">
             <button
               class="refresh-button"
               type="button"
@@ -237,6 +237,7 @@ import { useRoute } from "vue-router";
 import { categories } from "../map/categories";
 import { refreshConstructionData } from "../map/layers";
 import { useCampusAccount } from "../services/campusTools.js";
+const canRefreshConstruction = import.meta.env.DEV;
 const buildings = ref([]);
 const { session } = useCampusAccount();
 const isAdmin = computed(() => session.value?.account?.admin === true);

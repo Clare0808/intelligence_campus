@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
@@ -129,6 +130,8 @@ def refresh_construction():
 
 @api_bp.post("/construction/refresh")
 def refresh_construction_api():
+    if current_app.config["CAMPUS_ORIGIN"].startswith("https://") or os.getenv("CAMPUS_DISABLE_LEGACY_REFRESH") == "1":
+        return jsonify(message="此站未開放舊版 AI 公告更新。"), 403
     if request.remote_addr not in ("127.0.0.1", "::1"):
         return jsonify(message="僅允許由本機觸發公告更新。"), 403
     if not refresh_lock.acquire(blocking=False):
