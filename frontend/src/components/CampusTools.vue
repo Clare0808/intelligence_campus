@@ -223,7 +223,7 @@
               >
                 <option value="">選擇建物，或在地圖上選點</option>
                 <option
-                  v-for="place in places"
+                  v-for="place in reportPlaces"
                   :key="place.id"
                   :value="place.id"
                 >
@@ -266,6 +266,7 @@
 <script setup>
 import { computed, onMounted, ref, shallowRef, watch } from "vue";
 import CampusAccount from "./CampusAccount.vue";
+import { reportPlacesFromBuildings } from "../map/reportPlaces.js";
 import { createRoutePlanner } from "../map/walkingRoutes.js";
 import {
   campusRequest,
@@ -277,6 +278,7 @@ import {
 
 /* global defineProps, defineEmits */
 const props = defineProps({
+  buildings: { type: Array, default: () => [] },
   mapPoint: { type: Array, default: null },
   mapMarker: { type: Object, default: null },
   resetCount: { type: Number, default: 0 },
@@ -308,6 +310,7 @@ const datasetError = ref("");
 const reportsError = ref("");
 const reports = ref([]);
 const places = computed(() => accessibility.value?.places ?? []);
+const reportPlaces = computed(() => reportPlacesFromBuildings(props.buildings));
 
 const start = ref("");
 const end = ref("");
@@ -503,7 +506,7 @@ function chooseMarker(id) {
 function chooseReportPlace(id) {
   reportPlace.value = id;
   location.value =
-    places.value.find((place) => place.id === id)?.coordinates ?? null;
+    reportPlaces.value.find((place) => place.id === id)?.coordinates ?? null;
   if (location.value) emit("focus", location.value);
 }
 
