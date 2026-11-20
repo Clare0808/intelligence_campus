@@ -13,11 +13,6 @@ PROVIDERS = {
         "https://accounts.google.com/.well-known/openid-configuration",
         "openid profile email",
     ),
-    "portal": (
-        "中大 Portal",
-        "https://portal.ncu.edu.tw/.well-known/openid-configuration",
-        "openid",
-    ),
 }
 
 

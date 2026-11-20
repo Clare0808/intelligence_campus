@@ -184,15 +184,8 @@
 
       <template v-else-if="panel === 'report'">
         <h2>登入與回報</h2>
-        <CampusAccount />
+        <CampusAccount icon-sign-out class="sidebar-account" />
         <template v-if="account">
-          <RouterLink
-            v-if="account.admin"
-            class="admin-link"
-            :to="{ name: 'campus-admin' }"
-          >
-            開啟回報管理
-          </RouterLink>
           <form class="fields report-form" @submit.prevent="submitReport">
             <label>
               回報類別
@@ -617,6 +610,9 @@ onMounted(async () => {
 .tool-panel p {
   margin: 0;
   overflow-wrap: anywhere;
+}
+.sidebar-account :deep(.account-row .sign-out-icon) {
+  margin-left: auto;
 }
 .fields,
 .fields > label:not(.check) {

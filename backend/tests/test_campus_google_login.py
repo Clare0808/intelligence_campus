@@ -23,8 +23,8 @@ class GoogleLoginTests(unittest.TestCase):
             "CAMPUS_GOOGLE_CLIENT_ID": "test-client-id",
             "CAMPUS_GOOGLE_CLIENT_SECRET": "test-client-secret",
             "CAMPUS_ADMINS": "google:approved-admin",
-            "CAMPUS_PORTAL_CLIENT_ID": "",
-            "CAMPUS_PORTAL_CLIENT_SECRET": "",
+            "CAMPUS_PORTAL_CLIENT_ID": "ignored-portal-id",
+            "CAMPUS_PORTAL_CLIENT_SECRET": "ignored-portal-secret",
         }):
             configure_accounts(app)
         configure_reports(app)
@@ -39,8 +39,8 @@ class GoogleLoginTests(unittest.TestCase):
 
     def test_provider_is_available_in_preview_and_uses_frontend_callback(self):
         providers = self.client.get(self.prefix + "/session").json["providers"]
-        self.assertTrue(next(item for item in providers if item["id"] == "google")["enabled"])
-        self.assertFalse(next(item for item in providers if item["id"] == "portal")["enabled"])
+        self.assertEqual(providers, [{"id": "google", "label": "Google", "enabled": True}])
+        self.assertEqual(self.app.config["CAMPUS_PROVIDERS"], ("google",))
 
         oauth_client = Mock()
         oauth_client.authorize_redirect.return_value = "google-authorization-response"
@@ -88,7 +88,7 @@ class GoogleLoginTests(unittest.TestCase):
 
         with self.client.session_transaction() as cookie:
             account = cookie["campus_account"]
-            cookie["campus_account"] = {**account, "provider": "portal"}
+            cookie["campus_account"] = {**account, "provider": "unrecognized"}
         self.assertFalse(self.client.get(self.prefix + "/session").json["account"]["admin"])
         self.assertEqual(self.client.get(endpoint).status_code, 403)
 
@@ -114,9 +114,11 @@ class GoogleLoginTests(unittest.TestCase):
         self.assertEqual(response.location, self.origin + "/campus?login=failed")
         self.assertIsNone(self.client.get(self.prefix + "/session").json["account"])
 
-    def test_unconfigured_provider_returns_to_frontend(self):
-        response = self.client.get(self.prefix + "/login/portal")
-        self.assertEqual(response.location, self.origin + "/campus?login=unavailable")
+    def test_removed_provider_cannot_start_or_complete_login(self):
+        for endpoint in ("/login/portal", "/callback/portal"):
+            response = self.client.get(self.prefix + endpoint)
+            self.assertEqual(response.location, self.origin + "/campus?login=unavailable")
+            self.assertIsNone(self.client.get(self.prefix + "/session").json["account"])
 
 
 if __name__ == "__main__":

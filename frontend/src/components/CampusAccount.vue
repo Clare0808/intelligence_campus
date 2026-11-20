@@ -132,6 +132,12 @@ onMounted(() => act(refresh));
   color: inherit;
   font-size: 0.875rem;
 }
+.account-row a {
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  text-decoration: none;
+}
 .account button:disabled {
   color: var(--muted, #536774);
   cursor: default;

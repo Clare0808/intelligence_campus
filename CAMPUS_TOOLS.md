@@ -41,7 +41,7 @@ node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort
 
 「登入與回報」提供兩個本機預覽角色。可先以「預覽回報者」送出回報，再登出並切換成「預覽管理員」審核。預覽回報資料存於 `backend/instance/preview-reports.json`；正式模式預設存於 `backend/instance/campus-reports.json`。JSON 檔及 `.lock` 檔會留在伺服器，不提交到版本控制；請保留可寫入且持久化的 `backend/instance/` 並定期備份 JSON。
 
-送出成功會顯示回報編號，新回報先列於管理後台的「待審核」，不會立刻公開於地圖。後台開啟時每 10 秒自動更新回報列表，切回後台分頁時也會更新；如需立刻查看可按「重新載入」。登入過的 Google／Portal 帳號會記錄在 `backend/instance/campus-users.sqlite3`，後台「使用者管理」可查看並將其權限切換為「使用者」或「管理員」，下次請求立即生效。初始管理員不可降權；未登入者及一般使用者不會顯示後台入口，也不能呼叫後台 API。既有登入者若在此功能上線前登入，須重新登入一次才會出現在名單。變更後請重啟後端。`preview.py` 的預覽角色只適用於本機預覽模式。
+送出成功會顯示回報編號，新回報先列於管理後台的「待審核」，不會立刻公開於地圖。後台開啟時每 10 秒自動更新回報列表，切回後台分頁時也會更新；如需立刻查看可按「重新載入」。登入過的 Google 帳號會記錄在 `backend/instance/campus-users.sqlite3`，後台「使用者管理」可查看並將其權限切換為「使用者」或「管理員」，下次請求立即生效。初始管理員不可降權；未登入者及一般使用者不會顯示後台入口，也不能呼叫後台 API。既有登入者若在此功能上線前登入，須重新登入一次才會出現在名單。變更後請重啟後端。`preview.py` 的預覽角色只適用於本機預覽模式。
 
 首次讀取時若 JSON 尚不存在，會將既有 `backend/instance/campus-reports.sqlite3` 或舊版誤存於 `frontend/instance/campus-reports.sqlite3` 的資料匯入（預覽模式則匯入 `preview-reports.sqlite3`），保留舊 SQLite 檔作備份。若舊檔位於其他位置，可在首次匯入前設定 `CAMPUS_REPORTS_DB` 為該檔絕對路徑；若要指定 JSON 路徑，設定 `CAMPUS_REPORTS_FILE`。有多個舊檔時請先確認要匯入哪一份，不會自動合併；一旦 JSON 存在就不會再次匯入。
 
@@ -69,7 +69,7 @@ node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort
 
 三種模式都會避開審核公開的施工封路回報所對應的路段。未知標記不代表已確認可通行或有照明，入口與現場路況仍須確認。
 
-## 啟用 Google 與中大 Portal
+## 啟用 Google 登入
 
 正式啟動使用 `flask --app app`（在 `backend/` 執行）或以 WSGI 對外提供 `app:app`。以同一個網站來源提供前端與 `/api`，並在後端程序環境設定下列變數。使用 Flask CLI 時也可由 `backend/.env` 載入。
 
@@ -80,12 +80,11 @@ node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort
 | `CAMPUS_ORIGIN` | 使用者開啟的網站來源，例如 `https://campus.example.edu`。本機預設為 `http://127.0.0.1:5173`。 |
 | `CAMPUS_SESSION_SECRET` | 工作階段簽章密鑰，可用 `python -c "import secrets; print(secrets.token_hex(32))"` 產生。 |
 | `CAMPUS_GOOGLE_CLIENT_ID`、`CAMPUS_GOOGLE_CLIENT_SECRET` | Google Cloud Web 應用程式的 OpenID Connect 設定。回呼 URI 為網站來源加上 `/api/campus/callback/google`。 |
-| `CAMPUS_PORTAL_CLIENT_ID`、`CAMPUS_PORTAL_CLIENT_SECRET` | 向國立中央大學電算中心申請的 Portal OpenID Connect 設定。回呼 URI 為網站來源加上 `/api/campus/callback/portal`。 |
 | `CAMPUS_REPORTS_FILE` | 可選的 JSON 絕對路徑，預設為 `backend/instance/campus-reports.json`。 |
 | `CAMPUS_REPORTS_DB` | 可選的舊 SQLite 絕對路徑，僅在 JSON 尚不存在的首次匯入使用。 |
 | `CAMPUS_USERS_DB` | 可選的使用者 SQLite 絕對路徑，預設為 `backend/instance/campus-users.sqlite3`；請確保目錄可持久化並定期備份。 |
 
-[Google OpenID Connect 設定](https://developers.google.com/identity/openid-connect/openid-connect) · [中大 Portal 介接說明](https://portal.ncu.edu.tw/about/howto)
+[Google OpenID Connect 設定](https://developers.google.com/identity/openid-connect/openid-connect)
 
 ## 地圖資料
 
