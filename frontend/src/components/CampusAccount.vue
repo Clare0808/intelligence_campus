@@ -4,8 +4,30 @@
     <template v-else-if="account">
       <div v-if="account.account" class="account-row">
         <span>{{ account.account.name }}</span>
-        <button type="button" :disabled="busy" @click="act(signOut)">
-          登出
+        <slot name="before-sign-out" />
+        <button
+          type="button"
+          :disabled="busy"
+          :aria-label="iconSignOut ? '登出' : undefined"
+          :title="iconSignOut ? '登出' : undefined"
+          :class="{ 'sign-out-icon': iconSignOut }"
+          @click="act(signOut)"
+        >
+          <svg
+            v-if="iconSignOut"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" />
+            <path d="m15 16 4-4-4-4M19 12H9" />
+          </svg>
+          <template v-else>登出</template>
         </button>
       </div>
       <template v-else>
@@ -54,6 +76,9 @@
 import { onMounted, computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useCampusAccount } from "../services/campusTools.js";
+
+/* global defineProps */
+defineProps({ iconSignOut: { type: Boolean, default: false } });
 
 const {
   session: account,
@@ -110,6 +135,15 @@ onMounted(() => act(refresh));
 .account button:disabled {
   color: var(--muted, #536774);
   cursor: default;
+}
+.account .sign-out-icon {
+  justify-content: center;
+  width: 44px;
+  padding: 5px;
+}
+.sign-out-icon svg {
+  width: 20px;
+  height: 20px;
 }
 .account p {
   margin: 0 0 6px;

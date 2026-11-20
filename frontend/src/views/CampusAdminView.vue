@@ -1,12 +1,17 @@
 <template>
-  <main class="admin">
+  <main class="admin" :class="{ 'theme-light': theme === 'light' }">
     <div class="admin-content">
       <header class="topbar">
         <RouterLink :to="{ name: 'campus' }" class="button back-link"
-          ><AdminIcon name="back" /> 返回校園地圖</RouterLink
+          >返回校園地圖</RouterLink
         >
         <div class="account-area">
-          <span v-if="admin" class="role-badge">管理員</span><CampusAccount />
+          <span v-if="admin" class="role-badge">管理員</span>
+          <CampusAccount icon-sign-out>
+            <template #before-sign-out>
+              <ThemeToggle :theme="theme" @change="setTheme" />
+            </template>
+          </CampusAccount>
         </div>
       </header>
       <template v-if="admin">
@@ -251,7 +256,6 @@
                     }}</span>
                   </div>
                   <h2>{{ report.title }}</h2>
-                  <p class="details">{{ report.details }}</p>
                   <dl>
                     <div>
                       <dt>位置</dt>
@@ -373,6 +377,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import AdminIcon from "../components/AdminIcon.vue";
 import CampusAccount from "../components/CampusAccount.vue";
+import ThemeToggle from "../components/ThemeToggle.vue";
 import OfficialConstructionAdmin from "../components/OfficialConstructionAdmin.vue";
 import {
   campusRequest,
@@ -385,6 +390,13 @@ import {
 
 const { session } = useCampusAccount();
 const admin = computed(() => Boolean(session.value?.account?.admin));
+const theme = ref(
+  localStorage.getItem("campus-theme") === "light" ? "light" : "dark"
+);
+function setTheme(value) {
+  theme.value = value;
+  localStorage.setItem("campus-theme", value);
+}
 const reports = ref([]);
 const users = ref([]);
 const usersLoaded = ref(false);

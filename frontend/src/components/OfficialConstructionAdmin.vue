@@ -170,16 +170,16 @@ onMounted(load);
   gap: 8px;
   padding: 9px 11px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: 3px;
+  background: var(--panel-soft);
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
   transition: background 0.15s, border-color 0.15s;
 }
 .toolbar .reload-button:hover:not(:disabled) {
-  background: #eef4ef;
-  border-color: #8da69a;
+  background: var(--surface-hover, #eaf1f4);
+  border-color: var(--glow, #205b77);
 }
 .construction-admin button:not(.reload-button),
 .construction-admin select,
@@ -189,9 +189,9 @@ onMounted(load);
   max-width: 100%;
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 5px;
-  background: #fff;
-  color: #17252d;
+  border-radius: 3px;
+  background: var(--field, #fff);
+  color: var(--ink, #17252d);
 }
 .actions a {
   display: inline-flex;
@@ -202,7 +202,8 @@ onMounted(load);
 }
 .construction-admin button:not(.reload-button):hover:not(:disabled),
 .actions a:hover {
-  border-color: #205b77;
+  border-color: var(--glow, #205b77);
+  background: var(--surface-hover, #eaf1f4);
 }
 .construction-admin button:disabled {
   opacity: 0.55;
@@ -217,8 +218,8 @@ onMounted(load);
 .notices article {
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: 3px;
+  background: var(--panel-soft);
   overflow-wrap: anywhere;
 }
 .notices h2 {
@@ -229,7 +230,7 @@ onMounted(load);
 }
 .status {
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--panel-soft);
   font-size: 0.875rem;
 }

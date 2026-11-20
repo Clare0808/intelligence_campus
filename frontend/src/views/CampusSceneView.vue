@@ -563,8 +563,8 @@ function onSelect(id) {
 }
 .sidebar-toggle {
   border: 1px solid var(--line);
-  background: #a6c4d7;
-  color: #0b263d;
+  background: #0c2642;
+  color: #e5f6ff;
   cursor: pointer;
   position: absolute;
   z-index: 3;
@@ -579,7 +579,8 @@ function onSelect(id) {
   transition: left 0.25s ease;
 }
 .sidebar-toggle:hover {
-  background: #bfd7e6;
+  background: #1a4b75;
+  border-color: var(--glow);
 }
 .sidebar-toggle-closed {
   left: 0;
@@ -828,13 +829,14 @@ input:focus-visible {
   scrollbar-color: #a3b8c4 #eef2f4;
 }
 .theme-light .sidebar-toggle {
-  background: #f2e3bd;
-  border-color: #b69c65;
-  color: #493b21;
+  background: #fff;
+  border-color: var(--line);
+  color: #17252d;
   box-shadow: 5px 0 20px #364b5b30;
 }
 .theme-light .sidebar-toggle:hover {
-  background: #e8d39f;
+  background: #deebf0;
+  border-color: var(--glow);
 }
 .theme-light .refresh-button {
   background: #fff;
