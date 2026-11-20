@@ -34,7 +34,7 @@
             "raw_text": "中大湖湖岸步道",
             "building": null,
             "relative_area": null,
-            "specific_target": "步道舊木板",
+            "specific_target": "舊木板",
             "location_id": null
         },
         "construction": {
@@ -44,7 +44,7 @@
         },
         "confidence": 0.8,
         "needs_review": true,
-        "review_reason": "公告中未提供施工具體日期及詳細地點資訊，僅有標題描述。",
+        "review_reason": "公告中未提供施工日期及具體施工時間，無法確定施工起訖日期。",
         "processing_status": "success"
     },
     {
@@ -57,7 +57,7 @@
         "location": {
             "raw_text": "西區第二期研究中心一期、研究中心二期高壓變電站",
             "building": null,
-            "relative_area": "西區第二期",
+            "relative_area": null,
             "specific_target": "高壓變電站",
             "location_id": null
         },
@@ -68,7 +68,7 @@
         },
         "confidence": 0.8,
         "needs_review": true,
-        "review_reason": "公告標題提及停電公告日期變動更正，但未提供具體施工或停電日期，且無內文說明，無法確定具體施工時間與詳細地點。",
+        "review_reason": "公告標題提及停電公告日期變動更正，但未提供具體施工或停電日期，且無內文說明，無法確定施工起訖日期。",
         "processing_status": "success"
     },
     {
@@ -140,7 +140,7 @@
         },
         "confidence": 0.9,
         "needs_review": true,
-        "review_reason": "公告中未提供施工結束日期及更詳細施工範圍資訊。",
+        "review_reason": "公告中未提供施工結束日期及更詳細施工範圍，無法完整確定施工期間及具體位置。",
         "processing_status": "success"
     },
     {
@@ -160,7 +160,7 @@
         "construction": {
             "start_date": "2026-07-08",
             "end_date": "2026-08-07",
-            "description": null
+            "description": "男九舍機車停車場坡坎施工"
         },
         "confidence": 0.9,
         "needs_review": false,
@@ -184,7 +184,7 @@
         "construction": {
             "start_date": "2026-07-01",
             "end_date": "2026-07-15",
-            "description": "零星修繕"
+            "description": "校內部份區域地坪、人行道路零星修繕"
         },
         "confidence": 0.9,
         "needs_review": false,
@@ -197,7 +197,7 @@
         "PublishDate": "2026-06-17",
         "NewsTitle": "115年6月22日起至115年9月19日鴻經館外牆修繕工程 施工公告",
         "NewsContent": "<p><strong>施工公告</strong></p>\n\n<p><strong>一、工程名稱：鴻經館外牆修繕工程</strong></p>\n\n<p><strong>二、施工期間：115年6月22日起至115年9月19日止</strong></p>\n\n<p><strong>三、施工地點: 鴻經館 四、注意事項：</strong></p>\n\n<p><strong>(一)施工期間請留意現場安全警示標誌，並避免進入施工管制區域，以維護人身安全。</strong></p>\n\n<p><strong>(二) 施工期間有噪音、及物品掉落現象，請留意管制動線。</strong></p>\n\n<p><strong>(三)因需搭設鷹架，原停放於廊道底下之腳踏車將配合移置其他指定區域。</strong></p>\n\n<p><strong>施工期間如造成不便，敬請包涵，感謝您的配合。</strong></p>\n\n<p><strong>施工廠商︰億境營造有限公司 現場(工地)負責人︰廖震宸：0935091001</strong></p>\n\n<p><strong>承辦單位:總務處營繕組承辦人：蕭先生 校內分機：57397</strong></p>\n\n<p><strong>總務處 啟</strong></p>\n\n<p><img alt=\"1150622施工公告圖1\" src=\"files/image/1150622施工公告圖1.jpg\" style=\"width: 850px; height: 503px;\" /></p>\n\n<p><img alt=\"1150622施工公告圖2\" src=\"files/image/1150622施工公告圖2.jpg\" style=\"width: 876px; height: 512px;\" /></p>\n\n<p><img alt=\"1150622施工公告圖3\" src=\"files/image/1150622施工公告圖3.jpg\" style=\"width: 741px; height: 728px;\" /></p>",
-        "announcement_type": "maintenance",
+        "announcement_type": "construction",
         "location": {
             "raw_text": "鴻經館外牆",
             "building": "鴻經館",
@@ -210,31 +210,7 @@
             "end_date": "2026-09-19",
             "description": "鴻經館外牆修繕工程"
         },
-        "confidence": 1,
-        "needs_review": false,
-        "review_reason": null,
-        "processing_status": "success"
-    },
-    {
-        "Id": "78d56cc4-0ec4-4c1e-8132-07408f5665a8",
-        "PublishDepartment": "營繕組",
-        "PublishDate": "2026-05-19",
-        "NewsTitle": "115年5月20日至115年6月16日西區第二期高壓變電站改善 施工公告",
-        "NewsContent": "<p style=\"margin-bottom:11px\"><strong>施工公告<br />\n<br />\n一、 工程名稱：第二期「研究中心一期、研究中心二期、雷達站、大型力學實驗室及風洞實驗室高壓變電站電力改善」案<br />\n<br />\n二、 挖掘施工高壓管路佈建日期及時間：115年5月20日上午08:00 AM至 115年6月16日下午05:00 PM<br />\n<br />\n三、 受影響單位區域範圍：研究中心二期、大型力學實驗室及雷達站實驗室館舍周邊區域<br />\n<br />\n四、 說 明：<br />\n1. 施工期間館舍樓層出入口正常通行，會影響&rdquo;研究中心二期館舍東側&rdquo;路邊停車。<br />\n2. 施工期間有挖掘機器產生施工噪音現象。<br />\n3. 施工挖掘期間進出該區域附近之人員，請注意自身安全。<br />\n4. 施工期間造成不便之處，敬請見諒!!<br />\n<br />\n五、 施工廠商︰智景有限公司<br />\n工地負責人︰張景揚先生 電話：0910232962<br />\n設計監造單位:鎧鉅工程顧問有限公司<br />\n公司電話︰ 02-82421819<br />\n監造經理：林進財技師 0938-032456<br />\n承辦單位:總務處營繕組<br />\n承辦人：吳清順佐 校內分機：28000<br />\n<br />\n總務處營繕組 敬啟</strong></p>",
-        "announcement_type": "construction",
-        "location": {
-            "raw_text": "西區第二期高壓變電站",
-            "building": null,
-            "relative_area": "西區第二期",
-            "specific_target": "高壓變電站",
-            "location_id": null
-        },
-        "construction": {
-            "start_date": "2026-05-20",
-            "end_date": "2026-06-16",
-            "description": "西區第二期高壓變電站改善施工"
-        },
-        "confidence": 0.9,
+        "confidence": 0.95,
         "needs_review": false,
         "review_reason": null,
         "processing_status": "success"

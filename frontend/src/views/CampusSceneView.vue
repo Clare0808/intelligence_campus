@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <main
     class="campus-page"
     :class="{ 'theme-light': theme === 'light' }"
@@ -179,9 +179,6 @@
                     announcement.construction?.start_date || "未提供"
                   }}
                   ～ {{ announcement.construction?.end_date || "未提供" }}
-                </p>
-                <p v-if="announcement.needs_review" class="review-note">
-                  此公告資訊尚待確認
                 </p>
               </article>
             </section>
