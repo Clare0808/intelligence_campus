@@ -186,7 +186,7 @@
 
       <template v-else-if="panel === 'report'">
         <h2>登入與回報</h2>
-        <CampusAccount icon-sign-out class="sidebar-account" />
+        <CampusAccount icon-sign-out sidebar-layout class="sidebar-account" />
         <template v-if="account">
           <form
             class="fields report-form"
@@ -608,6 +608,14 @@ onMounted(async () => {
   background: var(--panel-soft);
   color: inherit;
 }
+.sidebar-account :deep(.account-row-sidebar .sign-out-icon) {
+  flex: 0 0 29px;
+  width: 29px;
+  height: 29px;
+  min-height: 29px;
+  max-width: 29px;
+  padding: 5px;
+}
 .tools button:hover:not(:disabled),
 .tools button[aria-expanded="true"],
 .tools .primary {
@@ -634,9 +642,6 @@ onMounted(async () => {
 .tool-panel p {
   margin: 0;
   overflow-wrap: anywhere;
-}
-.sidebar-account :deep(.account-row .sign-out-icon) {
-  margin-left: auto;
 }
 .fields,
 .fields > label:not(.check) {
