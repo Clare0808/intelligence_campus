@@ -135,7 +135,6 @@
               <h2>校方施工公告</h2>
             </div>
           </div>
-          <OfficialConstructionAdmin />
         </section>
         <div v-else class="manager-grid">
           <section class="report-panel" aria-label="使用者回報管理">
