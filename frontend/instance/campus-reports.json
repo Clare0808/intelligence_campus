@@ -1,5 +1,5 @@
 {
-  "next_id": 5,
+  "next_id": 6,
   "reports": [
     {
       "id": 2,
@@ -62,6 +62,22 @@
       "created_at": "2026-11-21T15:52:41+00:00",
       "reviewed_at": "2026-11-21T15:52:45+00:00",
       "reviewer": "google:111924231745422874738",
+      "deleted_at": null,
+      "deleted_by": null
+    },
+    {
+      "id": 5,
+      "kind": "damage",
+      "title": "t",
+      "details": "t",
+      "longitude": 121.1926765,
+      "latitude": 24.967348,
+      "road_closed": false,
+      "reporter": "google:111924231745422874738",
+      "status": "pending",
+      "created_at": "2026-11-21T16:11:28+00:00",
+      "reviewed_at": null,
+      "reviewer": null,
       "deleted_at": null,
       "deleted_by": null
     }

@@ -1,6 +1,10 @@
 <template>
   <router-view />
+  <SuccessNotification />
 </template>
+<script setup>
+import SuccessNotification from "./components/SuccessNotification.vue";
+</script>
 
 <style lang="scss">
 ::view-transition-old(root),

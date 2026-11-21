@@ -397,9 +397,6 @@ h1 {
   border-radius: 3px;
   background: var(--field);
 }
-.search-input:focus-within {
-  border-color: var(--accent);
-}
 .search-input svg {
   color: var(--muted);
   width: 17px;
@@ -691,9 +688,6 @@ button:disabled {
 .admin :is(button, a, select, input):focus-visible {
   outline: 2px solid var(--glow);
   outline-offset: 2px;
-}
-.search-input:focus-within {
-  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 .access-panel > svg {
   width: 36px;

@@ -97,10 +97,6 @@
               {{ refreshError }}
             </p>
           </div>
-          <OfficialConstructionNotices
-            :announcements="constructionAnnouncements"
-            :refresh="constructionRefresh"
-          />
           <input
             id="building-search"
             v-model="query"
@@ -227,7 +223,6 @@
 </template>
 <script setup>
 import CampusTools from "../components/CampusTools.vue";
-import OfficialConstructionNotices from "../components/OfficialConstructionNotices.vue";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
 import { useRoute } from "vue-router";
@@ -246,7 +241,6 @@ const canRefreshConstruction = computed(
 const route = useRoute();
 const activePanel = ref(route.query.login ? "report" : "");
 const constructionAnnouncements = ref([]);
-const constructionRefresh = ref(null);
 const selectedId = ref("");
 const query = ref("");
 const sidebarOpen = ref(true);
@@ -357,9 +351,8 @@ const selectedAnnouncements = computed(() =>
 function onLoaded(features) {
   buildings.value = features.filter((feature) => feature.properties.name);
 }
-function onConstructionLoaded(announcements, refresh) {
+function onConstructionLoaded(announcements) {
   constructionAnnouncements.value = announcements;
-  constructionRefresh.value = refresh ?? null;
 }
 function onSelect(id) {
   selectedId.value = selectedId.value === id ? "" : id;

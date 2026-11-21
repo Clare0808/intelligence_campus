@@ -186,7 +186,11 @@
         <h2>登入與回報</h2>
         <CampusAccount icon-sign-out class="sidebar-account" />
         <template v-if="account">
-          <form class="fields report-form" @submit.prevent="submitReport">
+          <form
+            class="fields report-form"
+            @submit.prevent="submitReport"
+            @invalid.capture="notifyMissingField"
+          >
             <label>
               回報類別
               <select v-model="kind">
@@ -197,7 +201,12 @@
             </label>
             <label>
               標題
-              <input v-model.trim="title" required maxlength="80" />
+              <input
+                v-model.trim="title"
+                required
+                maxlength="80"
+                aria-label="標題"
+              />
             </label>
             <label>
               情況說明
@@ -206,6 +215,7 @@
                 required
                 maxlength="1000"
                 rows="3"
+                aria-label="情況說明"
               />
             </label>
             <label>
@@ -246,9 +256,6 @@
             </button>
           </form>
           <p v-if="reportError" role="alert">{{ reportError }}</p>
-          <p v-if="submission" role="status">
-            回報 #{{ submission }} 已送出，等待管理員審核。
-          </p>
         </template>
         <p v-else class="muted">登入後可回報施工、毀壞與閒置設施。</p>
       </template>
@@ -259,6 +266,7 @@
 <script setup>
 import { computed, onMounted, ref, shallowRef, watch } from "vue";
 import CampusAccount from "./CampusAccount.vue";
+import { showNotification } from "../services/notifications.js";
 import { reportPlacesFromBuildings } from "../map/reportPlaces.js";
 import { createRoutePlanner } from "../map/walkingRoutes.js";
 import {
@@ -509,6 +517,7 @@ async function submitReport() {
   const closed = kind.value === "construction" && roadClosed.value;
   if (!location.value) {
     reportError.value = "請先選擇建物或在地圖上選點。";
+    showNotification(reportError.value, "error");
     return;
   }
   if (
@@ -516,6 +525,7 @@ async function submitReport() {
     (reportPlace.value || !planner.value?.nearestRoad(location.value))
   ) {
     reportError.value = "請使用地圖選點，並將標記放在已繪製的封閉路段上。";
+    showNotification(reportError.value, "error");
     return;
   }
   submitting.value = true;
@@ -530,15 +540,27 @@ async function submitReport() {
       road_closed: closed,
     });
     submission.value = result.id;
+    showNotification(`回報 #${result.id} 已送出，等待管理員審核。`);
     title.value = "";
     details.value = "";
     chooseReportPlace("");
     roadClosed.value = false;
   } catch (error) {
     reportError.value = error.message;
+    showNotification(reportError.value, "error");
   } finally {
     submitting.value = false;
   }
+}
+
+function notifyMissingField(event) {
+  if (!event.target.validity.valueMissing) return;
+  reportError.value = "";
+  submission.value = null;
+  showNotification(
+    `請填寫${event.target.getAttribute("aria-label")}。`,
+    "error"
+  );
 }
 
 onMounted(async () => {

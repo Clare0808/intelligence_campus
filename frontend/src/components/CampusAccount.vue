@@ -47,14 +47,14 @@
             <button
               type="button"
               :disabled="busy"
-              @click="act(() => signInAs('reporter'))"
+              @click="act(() => signInAs('reporter'), '登入成功！')"
             >
               預覽回報者
             </button>
             <button
               type="button"
               :disabled="busy"
-              @click="act(() => signInAs('reviewer'))"
+              @click="act(() => signInAs('reviewer'), '登入成功！')"
             >
               預覽管理員
             </button>
@@ -74,8 +74,9 @@
 
 <script setup>
 import { onMounted, computed, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useCampusAccount } from "../services/campusTools.js";
+import { showNotification } from "../services/notifications.js";
 
 /* global defineProps */
 defineProps({ iconSignOut: { type: Boolean, default: false } });
@@ -88,17 +89,23 @@ const {
   loginUrl,
 } = useCampusAccount();
 const route = useRoute();
-const loginError = computed(() =>
-  route.query.login === "failed" || route.query.login === "unavailable"
+const router = useRouter();
+const loginError = computed(
+  () => route.query.login === "failed" || route.query.login === "unavailable"
 );
 const loadError = ref("");
 const busy = ref(false);
 
-async function act(action) {
+async function act(action, successMessage = "") {
   busy.value = true;
   loadError.value = "";
   try {
     await action();
+    if (successMessage) showNotification(successMessage);
+    if (route.query.login === "success" && account.value?.account) {
+      showNotification("登入成功！");
+      await router.replace({ query: { ...route.query, login: undefined } });
+    }
   } catch (error) {
     loadError.value = error.message;
   } finally {
