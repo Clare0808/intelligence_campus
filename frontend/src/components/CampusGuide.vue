@@ -25,6 +25,7 @@
       <div
         v-if="spotlight"
         class="guide-spotlight"
+        :class="{ 'guide-spotlight-moving': spotlightMoving }"
         :style="spotlight"
         aria-hidden="true"
       ></div>
@@ -86,6 +87,7 @@ const index = ref(0);
 const dialog = ref(null);
 const trigger = ref(null);
 const spotlight = ref(null);
+const spotlightMoving = ref(false);
 const isLast = computed(() => index.value === steps.length - 1);
 const themeClass = computed(() =>
   props.theme === "light" ? "guide-light" : ""
@@ -94,6 +96,10 @@ let previousFocus;
 let targetElement;
 let observer;
 let frame;
+let transitionFrame;
+let transitionStart;
+let moveFrame;
+let sidebarOpening = false;
 
 function updateSpotlight() {
   if (steps[index.value].target === "campus-building") {
@@ -109,7 +115,6 @@ function updateSpotlight() {
     rect.right <= 0 ||
     rect.left >= window.innerWidth
   ) {
-    spotlight.value = null;
     return;
   }
   const left = Math.max(0, rect.left - gap);
@@ -125,8 +130,35 @@ function updateSpotlight() {
 }
 
 function queueSpotlight() {
+  if (sidebarOpening) return;
   window.cancelAnimationFrame(frame);
   frame = window.requestAnimationFrame(updateSpotlight);
+}
+
+function trackSidebarTransition(timestamp) {
+  if (!open.value || !targetElement?.isConnected) return;
+  if (timestamp - transitionStart > 250) {
+    if (sidebarOpening) {
+      sidebarOpening = false;
+      moveSpotlightToTarget();
+    }
+    return;
+  }
+  queueSpotlight();
+  transitionFrame = window.requestAnimationFrame(trackSidebarTransition);
+}
+
+function moveSpotlightToTarget() {
+  window.cancelAnimationFrame(moveFrame);
+  spotlightMoving.value = false;
+  // Allow the old position to paint before starting the CSS transition.
+  moveFrame = window.requestAnimationFrame(() => {
+    moveFrame = window.requestAnimationFrame(() => {
+      if (!open.value) return;
+      spotlightMoving.value = true;
+      updateSpotlight();
+    });
+  });
 }
 
 async function focusTarget() {
@@ -135,24 +167,41 @@ async function focusTarget() {
   observer?.disconnect();
   if (steps[index.value].target === "campus-building") {
     targetElement = null;
-    updateSpotlight();
+    moveSpotlightToTarget();
     return;
   }
   targetElement = document.querySelector(steps[index.value].target);
   if (!targetElement) {
     spotlight.value = null;
+    spotlightMoving.value = false;
     return;
   }
   if (targetElement !== trigger.value && targetElement.closest(".sidebar")) {
-    targetElement.scrollIntoView({ block: "nearest", inline: "nearest" });
+    targetElement.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "nearest",
+    });
+    window.cancelAnimationFrame(transitionFrame);
+    transitionStart = performance.now();
+    transitionFrame = window.requestAnimationFrame(trackSidebarTransition);
+    if (sidebarOpening) return;
   }
   observer = new ResizeObserver(queueSpotlight);
   observer.observe(targetElement);
-  queueSpotlight();
+  moveSpotlightToTarget();
 }
 
 function showStep() {
-  spotlight.value = null;
+  if (!spotlight.value) spotlightMoving.value = false;
+  const sidebar = document.querySelector(".sidebar");
+  sidebarOpening =
+    Boolean(spotlight.value) &&
+    steps[index.value].panel !== "" &&
+    sidebar?.classList.contains("sidebar-closed");
+  window.cancelAnimationFrame(moveFrame);
+  window.cancelAnimationFrame(frame);
+  window.cancelAnimationFrame(transitionFrame);
   emit("step-change", steps[index.value]);
   focusTarget();
   nextTick(() => dialog.value?.focus());
@@ -175,8 +224,12 @@ function start() {
 function finish() {
   open.value = false;
   spotlight.value = null;
+  spotlightMoving.value = false;
+  sidebarOpening = false;
   observer?.disconnect();
   window.cancelAnimationFrame(frame);
+  window.cancelAnimationFrame(moveFrame);
+  window.cancelAnimationFrame(transitionFrame);
   targetElement = null;
   emit("close");
   nextTick(() => {
@@ -253,6 +306,8 @@ onBeforeUnmount(() => {
   window.removeEventListener("scroll", queueSpotlight, true);
   observer?.disconnect();
   window.cancelAnimationFrame(frame);
+  window.cancelAnimationFrame(moveFrame);
+  window.cancelAnimationFrame(transitionFrame);
   if (
     open.value &&
     previousFocus?.isConnected &&
@@ -339,6 +394,15 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   box-shadow: 0 0 0 9999px rgba(3, 14, 27, 0.72), 0 0 0 3px var(--glow);
   pointer-events: none;
+}
+.guide-spotlight-moving {
+  transition: left 0.35s linear, top 0.35s linear, width 0.35s linear,
+    height 0.35s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guide-spotlight-moving {
+    transition: none;
+  }
 }
 .guide-backdrop.guide-light {
   --panel: #fff;
