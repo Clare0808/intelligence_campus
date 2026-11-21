@@ -2,6 +2,7 @@
   <section class="tools" aria-label="校園地圖工具">
     <div class="tool-nav">
       <button
+        data-guide="construction"
         type="button"
         :aria-expanded="panel === 'construction'"
         :aria-controls="
@@ -14,6 +15,7 @@
       <button
         v-for="[id, name] in tools"
         :key="id"
+        :data-guide="id"
         type="button"
         :aria-expanded="panel === id"
         :aria-controls="panel === id ? 'campus-tool-panel' : undefined"

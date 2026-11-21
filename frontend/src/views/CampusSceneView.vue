@@ -17,7 +17,7 @@
         ><RouterLink to="/map">原有校園示意圖 ↗</RouterLink>
       </nav>
     </header> -->
-    <div class="page-body" :inert="refreshState !== 'idle'">
+    <div class="page-body" :inert="refreshState !== 'idle' || guideOpen">
       <section class="viewer" aria-label="中央大學 3D 地理地圖">
         <div class="map-area">
           <CampusMap
@@ -28,6 +28,7 @@
             :tool-focus="toolFocus"
             :picking-location="pickingLocation"
             @loaded="onLoaded"
+            @guide-building-position="guideBuildingSpotlight = $event"
             @select="onSelect"
             @reset="resetMap"
             @clear-route="clearRouteCount += 1"
@@ -54,6 +55,7 @@
             >管理後台</RouterLink
           >
           <button
+            data-guide="report"
             type="button"
             :aria-expanded="activePanel === 'report'"
             :aria-controls="
@@ -192,6 +194,14 @@
       >
         <span aria-hidden="true">{{ sidebarOpen ? "◀" : "▶" }}</span>
       </button>
+      <CampusGuide
+        :disabled="refreshState !== 'idle'"
+        :theme="theme"
+        :building-spotlight="guideBuildingSpotlight"
+        @open="onGuideOpen"
+        @step-change="onGuideStep"
+        @close="onGuideClose"
+      />
     </div>
     <div
       v-if="refreshState !== 'idle'"
@@ -223,6 +233,7 @@
 </template>
 <script setup>
 import CampusTools from "../components/CampusTools.vue";
+import CampusGuide from "../components/CampusGuide.vue";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
 import { useRoute } from "vue-router";
@@ -251,6 +262,22 @@ const toolMarker = ref(null);
 const resetTools = ref(0);
 const clearRouteCount = ref(0);
 const pickingLocation = ref(false);
+const guideOpen = ref(false);
+const guideBuildingSpotlight = ref(null);
+let beforeGuide;
+
+function onGuideOpen() {
+  beforeGuide = { sidebarOpen: sidebarOpen.value, panel: activePanel.value };
+  guideOpen.value = true;
+}
+
+function onGuideClose() {
+  if (beforeGuide) {
+    sidebarOpen.value = beforeGuide.sidebarOpen;
+    activePanel.value = beforeGuide.panel;
+  }
+  guideOpen.value = false;
+}
 
 function resetMap() {
   selectedId.value = "";
@@ -266,6 +293,11 @@ function cancelPick() {
   if (!pickingLocation.value) return;
   pickingLocation.value = false;
   sidebarOpen.value = true;
+}
+function onGuideStep(step) {
+  pickingLocation.value = false;
+  sidebarOpen.value = step.panel !== "";
+  activePanel.value = step.panel;
 }
 
 function onToolPoint(point) {

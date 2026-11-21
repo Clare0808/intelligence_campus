@@ -91,6 +91,7 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import ThemeToggle from "./ThemeToggle.vue";
 import { addToolLayers, updateToolLayers } from "../map/campusToolLayers.js";
 import { buildingLabel } from "../map/buildingLabels.js";
+import { findGuideBuildingRect } from "../map/guideBuilding.js";
 import {
   addCampusLayers,
   loadCampusData,
@@ -119,6 +120,7 @@ const emit = defineEmits([
   "theme-change",
   "tool-point",
   "tool-marker",
+  "guide-building-position",
 ]);
 const container = ref(null);
 const loading = ref(true);
@@ -142,6 +144,19 @@ let darkBasemapPaint = new globalThis.Map();
 let basemapReady = false;
 let constructionTimer;
 let loadingConstruction = false;
+let guideBuildingFrame;
+function updateGuideBuildingPosition() {
+  if (!map || loading.value || error.value) return;
+  const { width } = map.getContainer().getBoundingClientRect();
+  const sidebarWidth = props.sidebarOpen
+    ? Math.min(width <= 520 ? 340 : 350, width - 40)
+    : 0;
+  emit("guide-building-position", findGuideBuildingRect(map, sidebarWidth));
+}
+function queueGuideBuildingPosition() {
+  window.cancelAnimationFrame(guideBuildingFrame);
+  guideBuildingFrame = window.requestAnimationFrame(updateGuideBuildingPosition);
+}
 const defaultView = {
   center: [121.1915503, 24.9684403], // Nominatim OSM relation 18727079
   zoom: 15.5,
@@ -438,6 +453,7 @@ watch([() => props.selectedId, () => props.sidebarOpen], ([id]) => {
   updateSelection(id);
   if (id) focusBuilding(id);
   else if (hadSelection) restoreDefaultView();
+  queueGuideBuildingPosition();
 });
 
 onMounted(async () => {
@@ -476,6 +492,8 @@ onMounted(async () => {
     map.addControl(new ScaleControl({ unit: "metric" }), "bottom-left");
     map.on("move", updateBuildingLabelPosition);
     map.on("resize", updateBuildingLabelPosition);
+    map.on("moveend", queueGuideBuildingPosition);
+    map.on("resize", queueGuideBuildingPosition);
     map.on("load", () => {
       const basemapLayers = map.getStyle().layers;
       basemapLayerIds = basemapLayers.map((layer) => layer.id);
@@ -493,6 +511,7 @@ onMounted(async () => {
       if (props.toolLayers) updateToolLayers(map, props.toolLayers);
       updateSelection(props.selectedId);
       loading.value = false;
+      map.once("idle", queueGuideBuildingPosition);
       if (compassButton) compassButton.disabled = false;
       loadConstruction();
       constructionTimer = window.setInterval(loadConstruction, 60_000);
@@ -549,6 +568,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  window.cancelAnimationFrame(guideBuildingFrame);
   window.clearInterval(constructionTimer);
   abortController.abort();
   compassButton?.removeEventListener("click", toggleViewMode, true);
