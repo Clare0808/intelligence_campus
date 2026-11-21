@@ -1,5 +1,5 @@
 {
-  "next_id": 4,
+  "next_id": 5,
   "reports": [
     {
       "id": 2,
@@ -42,10 +42,26 @@
       "latitude": 24.970184,
       "road_closed": false,
       "reporter": "google:111924231745422874738",
-      "status": "pending",
+      "status": "approved",
       "created_at": "2026-11-19T11:34:03+00:00",
-      "reviewed_at": null,
-      "reviewer": null,
+      "reviewed_at": "2026-11-21T15:52:05+00:00",
+      "reviewer": "google:111924231745422874738",
+      "deleted_at": null,
+      "deleted_by": null
+    },
+    {
+      "id": 4,
+      "kind": "idle",
+      "title": "test",
+      "details": "test",
+      "longitude": 121.1916965,
+      "latitude": 24.967385,
+      "road_closed": false,
+      "reporter": "google:111924231745422874738",
+      "status": "approved",
+      "created_at": "2026-11-21T15:52:41+00:00",
+      "reviewed_at": "2026-11-21T15:52:45+00:00",
+      "reviewer": "google:111924231745422874738",
       "deleted_at": null,
       "deleted_by": null
     }

@@ -42,6 +42,19 @@ export async function campusRequest(path, method = "GET", payload) {
   return data;
 }
 
+export async function refreshOfficialConstructionData() {
+  const response = await fetch("/api/construction/refresh-official", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "X-Campus-CSRF": session.value?.csrf || "" },
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || data === null) {
+    throw new Error(data?.message || "施工公告更新失敗，請稍後再試。");
+  }
+  return data;
+}
+
 export async function loadCampusFile(filename) {
   const response = await fetch(import.meta.env.BASE_URL + "data/" + filename);
   if (!response.ok) throw new Error("校園地圖資料載入失敗。");

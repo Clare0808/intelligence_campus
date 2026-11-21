@@ -233,11 +233,16 @@ import CampusMap from "../components/CampusMap.vue";
 import { useRoute } from "vue-router";
 import { categories } from "../map/categories";
 import { refreshConstructionData } from "../map/layers";
-import { useCampusAccount } from "../services/campusTools.js";
-const canRefreshConstruction = import.meta.env.DEV;
+import {
+  refreshOfficialConstructionData,
+  useCampusAccount,
+} from "../services/campusTools.js";
 const buildings = ref([]);
 const { session } = useCampusAccount();
 const isAdmin = computed(() => session.value?.account?.admin === true);
+const canRefreshConstruction = computed(
+  () => import.meta.env.DEV || isAdmin.value
+);
 const route = useRoute();
 const activePanel = ref(route.query.login ? "report" : "");
 const constructionAnnouncements = ref([]);
@@ -297,7 +302,11 @@ async function refreshConstruction() {
   await nextTick();
   refreshOverlay.value?.focus();
   try {
-    await refreshConstructionData();
+    if (import.meta.env.DEV) {
+      await refreshConstructionData();
+    } else {
+      await refreshOfficialConstructionData();
+    }
     refreshState.value = "success";
     reloadTimer = window.setTimeout(() => window.location.reload(), 1500);
   } catch (error) {

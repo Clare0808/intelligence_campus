@@ -12,6 +12,7 @@ from flask import current_app, jsonify, request
 
 from . import api_bp
 from .crawl import run_crawler
+from .campus_account import csrf_valid, current_account
 
 
 DATA_FILE = Path(__file__).resolve().parents[1] / "data" / "school_news_processed.json"
@@ -144,6 +145,30 @@ def refresh_construction_api():
         if feed:
             return jsonify(message="暫時無法取得校方公告，目前顯示上次成功取得的資料。"), 502
         return jsonify(message="更新失敗，原有公告資料已保留。請確認後端爬蟲設定。"), 500
+    finally:
+        refresh_lock.release()
+    return jsonify(message=f"公告資料已更新，共 {count} 筆。", count=count)
+
+
+@api_bp.post("/construction/refresh-official")
+def refresh_official_construction_api():
+    account = current_account()
+    if not account:
+        return jsonify(message="請先登入管理員帳號。"), 401
+    if not account["admin"]:
+        return jsonify(message="需要管理員權限。"), 403
+    if not csrf_valid():
+        return jsonify(message="工作階段已更新，請重新整理頁面。"), 403
+    feed = current_app.extensions.get("construction_feed")
+    if not feed:
+        return jsonify(message="目前未啟用校方施工公告更新。"), 503
+    if not refresh_lock.acquire(blocking=False):
+        return jsonify(message="公告資料正在更新中，請稍後再試。"), 409
+    try:
+        count = feed.refresh()
+    except Exception:
+        logger.exception("Official construction refresh failed")
+        return jsonify(message="暫時無法取得校方公告，目前顯示上次成功取得的資料。"), 502
     finally:
         refresh_lock.release()
     return jsonify(message=f"公告資料已更新，共 {count} 筆。", count=count)
