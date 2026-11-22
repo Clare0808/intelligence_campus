@@ -84,6 +84,13 @@
   width: 19px;
   height: 19px;
 }
+.account-area :deep(.theme-toggle svg) {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .role-badge {
   border: 1px solid var(--line);
   border-radius: 3px;
@@ -292,12 +299,45 @@ h1 {
 }
 .report-panel,
 .construction-panel,
-.users-panel {
+.users-panel,
+.assistant-log-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 3px;
   min-width: 0;
   overflow: hidden;
+}
+.assistant-log-content {
+  padding: 20px 24px;
+}
+.assistant-log-content > p {
+  margin: 0 0 14px;
+}
+.assistant-log-list {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+.assistant-log-list li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.assistant-log-list li:first-child {
+  padding-top: 0;
+}
+.assistant-log-list p {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.assistant-log-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 .users-content {
   padding: 20px 24px;

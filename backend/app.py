@@ -8,6 +8,8 @@ from api.construction import refresh_construction
 from api.campus_account import configure_accounts
 from api.campus_reports import configure_reports
 from api.campus_users import configure_users
+from api.campus_assistant import assistant_bp
+from api.campus_assistant_log import configure_assistant_log
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
@@ -19,10 +21,12 @@ if os.getenv("CAMPUS_ORIGIN", "http://127.0.0.1:5173").startswith("https://") an
     raise RuntimeError("CAMPUS_SESSION_SECRET is required for HTTPS deployment")
 
 app.register_blueprint(api_bp, url_prefix="/api")
+app.register_blueprint(assistant_bp)
 app.cli.add_command(refresh_construction)
 configure_accounts(app)
 configure_reports(app)
 configure_users(app)
+configure_assistant_log(app)
 
 # The built Vue application and API share one origin in production. Vite still
 # serves the frontend and proxies /api during local development.

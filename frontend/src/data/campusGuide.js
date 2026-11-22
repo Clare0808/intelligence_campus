@@ -41,6 +41,13 @@ export const campusGuideSteps = [
     target: "[data-guide='report']",
   },
   {
+    title: "AI 助手",
+    description:
+      "點選地圖右下角的 AI 助手，可詢問施工資訊與地圖功能；回答僅供參考，請以校方公告與現場狀況為準。",
+    panel: "",
+    target: ".assistant-trigger",
+  },
+  {
     title: "地圖顯示與重新導覽",
     description:
       "地圖右側可切換平面／3D、重設視角與深淺色模式。日後點選右側的「功能導覽」，即可再次查看本導覽。",

@@ -396,8 +396,8 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 .guide-spotlight-moving {
-  transition: left 0.35s linear, top 0.35s linear, width 0.35s linear,
-    height 0.35s linear;
+  transition: left 0.22s linear, top 0.22s linear, width 0.22s linear,
+    height 0.22s linear;
 }
 @media (prefers-reduced-motion: reduce) {
   .guide-spotlight-moving {

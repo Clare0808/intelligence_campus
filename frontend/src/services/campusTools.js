@@ -1,6 +1,7 @@
 import { ref } from "vue";
 
 const session = ref(null);
+let sessionRefresh = null;
 const prefix = "/api/campus";
 const dates = new Intl.DateTimeFormat("zh-TW", {
   dateStyle: "short",
@@ -37,9 +38,41 @@ export async function campusRequest(path, method = "GET", payload) {
   }
   const data = await response.json().catch(() => null);
   if (!response.ok || data === null) {
-    throw new Error(data?.message || "校園服務目前無法使用，請稍後重試。");
+    const error = new Error(
+      data?.message || "校園服務目前無法使用，請稍後重試。"
+    );
+    error.status = response.status;
+    throw error;
   }
   return data;
+}
+
+export function refreshCampusSession() {
+  if (!sessionRefresh) {
+    sessionRefresh = campusRequest("/session")
+      .then((data) => {
+        session.value = data;
+        return data;
+      })
+      .finally(() => {
+        sessionRefresh = null;
+      });
+  }
+  return sessionRefresh;
+}
+
+export async function askCampusAssistant(question, history) {
+  if (!session.value?.csrf) await refreshCampusSession();
+  try {
+    return await campusRequest("/assistant/chat", "POST", {
+      question,
+      history,
+    });
+  } catch (error) {
+    if (error.status !== 403) throw error;
+    await refreshCampusSession();
+    return campusRequest("/assistant/chat", "POST", { question, history });
+  }
 }
 
 export async function refreshOfficialConstructionData() {

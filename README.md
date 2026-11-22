@@ -32,6 +32,10 @@ python -m flask --app app refresh-construction
 
 ## 資料與限制
 
+校園地圖 `/campus` 右下角提供 AI 助手聊天室，可輸入問題或點選快速提問。後端 `POST /api/campus/assistant/chat` 沿用公告抽取程式的 OpenAI 相容模型設定；請設定 `backend/.env` 的 `AZURE_OPENAI_ENDPOINT`（HTTPS 的 OpenAI 相容 base URL）、`AZURE_OPENAI_API_KEY` 和 `AZURE_OPENAI_DEPLOYMENT`。前端不會取得金鑰；回答取得後在聊天室逐字顯示（非模型即時串流）。助手僅參考近期已整理且無待確認標記的施工公告與部分已審核回報；封路回報沒有有效期限，請勿據此認定目前道路仍封閉。資訊僅供參考，實際通行以現場與校方公告為準。
+
+已通過驗證的 AI 提問會記錄在 `backend/instance/campus-assistant.sqlite3` 的 `assistant_questions` 資料表（可用 `CAMPUS_ASSISTANT_DB` 指定其他路徑），包含問題、UTC 時間及登入帳號識別；未登入則標記為訪客。不保存模型回答或對話歷史；即使模型回覆失敗仍會保留提問。管理員可在後台「AI 提問紀錄」查看，每次載入 50 筆；一般使用者無法讀取。請保護並定期備份資料庫；不應將其提交到版本控制。若部署環境未提供持久化儲存，重新部署後紀錄可能遺失。
+
 - OSM 資料：[OpenStreetMap API bounding box 匯出](https://api.openstreetmap.org/api/0.6/map?bbox=121.18485,24.96505,121.19675,24.9717)，校園參考為 [OSM relation 18727079](https://www.openstreetmap.org/relation/18727079)。擷取日期 2026-11-09。轉成 128 個建築輪廓（71 個具名稱）、164 條道路／步道；資料授權 [ODbL](https://www.openstreetmap.org/copyright)，© OpenStreetMap contributors。此 bbox 涵蓋校園及鄰近區域，**不是正式校園邊界裁切**，因此部分輪廓及道路位於校外。
 - [中央大學官方校園導覽圖片](https://www.ncu.edu.tw/var/file/0/1000/img/3/712039015.jpg) 存於 `public/ncu-campus-reference.jpg`，僅供視覺參考。圖片為透視繪製、沒有可確認的地理控制點，未做地理配準、未將圖上像素轉為經緯度；圖上可見行政大樓、圖書館、各學院、宿舍、運動場、校內通道及多個出口，名稱未無證據自動對應到 OSM 圖形。
 - OSM 匯出中**零棟具高度標籤**，僅四棟具樓層數。GeoJSON 的 `height`、`min_height`、`height_source` 保留 `null`；有樓層數的建築只在渲染時用「每層 3 m」**推估顯示高度**，其餘無高度依據的建築以 6 m **純視覺示意高度**顯示。它們都不是實際高度。要得到可靠的真實高度，需要提供測量數據或附單棟來源的高度資料。

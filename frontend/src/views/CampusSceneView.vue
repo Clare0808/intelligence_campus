@@ -202,6 +202,7 @@
         @step-change="onGuideStep"
         @close="onGuideClose"
       />
+      <CampusAssistant :theme="theme" :disabled="guideOpen || refreshState !== 'idle'" />
     </div>
     <div
       v-if="refreshState !== 'idle'"
@@ -234,6 +235,7 @@
 <script setup>
 import CampusTools from "../components/CampusTools.vue";
 import CampusGuide from "../components/CampusGuide.vue";
+import CampusAssistant from "../components/CampusAssistant.vue";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import CampusMap from "../components/CampusMap.vue";
 import { useRoute } from "vue-router";

@@ -63,9 +63,59 @@
             >
               <AdminIcon name="shield" /> 使用者管理
             </button>
+            <button
+              type="button"
+              :aria-pressed="section === 'assistant'"
+              @click="section = 'assistant'"
+            >
+              AI 提問紀錄
+            </button>
           </nav>
         </div>
-        <section v-if="section === 'users'" class="users-panel">
+        <section v-if="section === 'assistant'" class="assistant-log-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>AI 助手提問紀錄</h2>
+            </div>
+            <button
+              class="button reload-button"
+              type="button"
+              :disabled="questionsLoading"
+              @click="loadQuestions()"
+            >
+              <AdminIcon name="refresh" />
+              {{ questionsLoading ? "載入中…" : "重新載入" }}
+            </button>
+          </div>
+          <div class="assistant-log-content" :aria-busy="questionsLoading">
+            <p v-if="questionsError" role="alert">{{ questionsError }}</p>
+            <p v-if="questionsLoading && !questionsLoaded" role="status">
+              正在載入提問紀錄…
+            </p>
+            <p v-else-if="questionsLoaded && !questions.length">
+              目前沒有 AI 助手提問紀錄。
+            </p>
+            <ol v-if="questions.length" class="assistant-log-list">
+              <li v-for="item in questions" :key="item.id">
+                <div class="assistant-log-meta">
+                  <span>#{{ item.id }} · {{ formatTime(item.created_at) }}</span>
+                  <span>{{ item.account || "訪客（未登入）" }}</span>
+                </div>
+                <p>{{ item.question }}</p>
+              </li>
+            </ol>
+            <button
+              v-if="questionsNextBefore"
+              class="button"
+              type="button"
+              :disabled="questionsLoading"
+              @click="loadQuestions(questionsNextBefore)"
+            >
+              載入更多
+            </button>
+          </div>
+        </section>
+        <section v-else-if="section === 'users'" class="users-panel">
           <div class="panel-heading">
             <div>
               <h2>已登入使用者</h2>
@@ -135,6 +185,7 @@
               <h2>校方施工公告</h2>
             </div>
           </div>
+          <OfficialConstructionAdmin />
         </section>
         <div v-else class="manager-grid">
           <section class="report-panel" aria-label="使用者回報管理">
@@ -403,6 +454,11 @@ const usersLoading = ref(false);
 const usersBusy = ref(false);
 const usersError = ref("");
 const usersMessage = ref("");
+const questions = ref([]);
+const questionsLoaded = ref(false);
+const questionsLoading = ref(false);
+const questionsError = ref("");
+const questionsNextBefore = ref(null);
 const section = ref("reports");
 const deleteCandidate = ref(null);
 const filter = ref("");
@@ -471,6 +527,31 @@ const stats = computed(() => [
 ]);
 let loadId = 0;
 let usersLoadId = 0;
+let questionsLoadId = 0;
+
+async function loadQuestions(before = null) {
+  if (!admin.value) return;
+  const id = ++questionsLoadId;
+  questionsLoading.value = true;
+  questionsError.value = "";
+  try {
+    const result = await campusRequest(
+      "/admin/assistant/questions" + (before ? "?before=" + before : "")
+    );
+    if (id === questionsLoadId && admin.value) {
+      questions.value = before
+        ? [...questions.value, ...result.questions]
+        : result.questions;
+      questionsNextBefore.value = result.next_before;
+      questionsLoaded.value = true;
+    }
+  } catch (cause) {
+    if (id === questionsLoadId && admin.value)
+      questionsError.value = cause.message;
+  } finally {
+    if (id === questionsLoadId) questionsLoading.value = false;
+  }
+}
 
 async function loadUsers() {
   if (!admin.value) return;
@@ -518,6 +599,7 @@ async function changeRole(user, event) {
 
 watch(section, (value) => {
   if (value === "users" && admin.value) loadUsers();
+  if (value === "assistant" && admin.value) loadQuestions();
 });
 
 async function loadReports({ silent = false } = {}) {
@@ -588,6 +670,7 @@ watch(
     if (allowed) {
       loadReports();
       if (section.value === "users") loadUsers();
+      if (section.value === "assistant") loadQuestions();
       if (!refreshTimer) {
         refreshTimer = window.setInterval(() => {
           if (!document.hidden) loadReports({ silent: true });
@@ -604,6 +687,12 @@ watch(
       usersLoading.value = false;
       usersError.value = "";
       usersMessage.value = "";
+      questionsLoadId += 1;
+      questions.value = [];
+      questionsLoaded.value = false;
+      questionsLoading.value = false;
+      questionsError.value = "";
+      questionsNextBefore.value = null;
       loaded.value = false;
       lastLoaded.value = null;
       loading.value = false;
@@ -624,6 +713,7 @@ onBeforeUnmount(() => {
   document.removeEventListener("visibilitychange", refreshWhenVisible);
   loadId += 1;
   usersLoadId += 1;
+  questionsLoadId += 1;
 });
 </script>
 

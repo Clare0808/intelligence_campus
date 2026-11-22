@@ -48,8 +48,8 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid #e29b54;
-  outline-offset: 3px;
+  outline: 1px solid #e29b54;
+  outline-offset: 1px;
 }
 
 ::selection {
