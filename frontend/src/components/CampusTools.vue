@@ -32,10 +32,14 @@
       <template v-if="panel === 'route'">
         <h2>路線規劃</h2>
         <p v-if="datasetError" role="alert">{{ datasetError }}</p>
-        <form class="fields" @submit.prevent="planRoute">
+        <form
+          class="fields"
+          @submit.prevent="planRoute"
+          @invalid.capture="notifyMissingRouteField"
+        >
           <label>
             起點
-            <select v-model="start" required>
+            <select v-model="start" required aria-label="起點">
               <option value="" disabled>選擇起點</option>
               <option v-for="place in places" :key="place.id" :value="place.id">
                 {{ place.name }}
@@ -44,7 +48,7 @@
           </label>
           <label>
             終點
-            <select v-model="end" required>
+            <select v-model="end" required aria-label="終點">
               <option value="" disabled>選擇終點</option>
               <option v-for="place in places" :key="place.id" :value="place.id">
                 {{ place.name }}
@@ -69,14 +73,6 @@
         <p v-if="routeError" role="alert">{{ routeError }}</p>
         <div v-if="planned" class="result" aria-live="polite">
           <strong>約 {{ Math.round(planned.distance) }} 公尺</strong>
-          <p>
-            起終點採建物附近的實際 OSM 道路。起點距建物參考點約
-            {{ Math.round(planned.startOffset) }} 公尺， 終點距建物參考點約
-            {{ Math.round(planned.endOffset) }} 公尺。
-          </p>
-          <p class="muted">
-            地圖道路與路線使用同一份 OSM 資料，建物入口連接仍需現場確認。
-          </p>
           <p v-if="mode === 'wheelchair'">
             無障礙可信度：{{
               percent(planned.wheelchair) === 100 ? "路段皆有標記" : "有限"
@@ -89,15 +85,8 @@
             }}。 已標有照明 {{ percent(planned.lit) }}%，照明未知
             {{ 100 - percent(planned.lightingKnown) }}%。
           </p>
-          <p v-if="reportsError" role="status">
-            道路封閉回報暫不可用，路線只使用 OSM 路網。
-          </p>
           <p class="muted">
-            路況可信度：依地圖標記及已審核回報。OSM 取得日
-            {{ network.retrieved }}。
-            <a :href="network.licence" target="_blank" rel="noopener noreferrer"
-              >© OpenStreetMap contributors</a
-            >
+            路線避開已審核且標示道路封閉的路段；其他施工公告未必有道路座標，請留意現場公告。
           </p>
           <div class="action-row">
             <button type="button" @click="emit('show-map')">查看地圖</button>
@@ -173,9 +162,9 @@
           <p>{{ selectedReport.details }}</p>
           <p v-if="selectedReport.road_closed">回報指出該處有道路封閉。</p>
           <p class="muted">
-            來源：使用者回報（經管理員審核）。回報
-            {{ formatTime(selectedReport.created_at) }}， 更新
-            {{ formatTime(selectedReport.reviewed_at) }}。
+            來源 : 使用者回報（經管理員審核）<br /> 回報 :
+            {{ formatTime(selectedReport.created_at) }} <br /> 更新 :
+            {{ formatTime(selectedReport.reviewed_at) }} <br />
           </p>
         </div>
         <button v-if="activeMarker" type="button" @click="emit('show-map')">
@@ -460,6 +449,7 @@ async function loadReports() {
     reports.value = (await campusRequest("/reports/map")).reports;
     reportsError.value = "";
   } catch (error) {
+    reports.value = [];
     reportsError.value = error.message;
   }
 }
@@ -476,6 +466,11 @@ async function planRoute() {
   try {
     await loadReports();
     if (requestId !== routeRequest) return;
+    if (reportsError.value) {
+      routeError.value =
+        "無法取得最新道路封閉回報，暫停規劃以免經過施工路段；請稍後重試。";
+      return;
+    }
     const result = planner.value.plan(
       places.value.find((place) => place.id === start.value).coordinates,
       places.value.find((place) => place.id === end.value).coordinates,
@@ -494,6 +489,12 @@ async function planRoute() {
   } finally {
     if (requestId === routeRequest) planning.value = false;
   }
+}
+
+function notifyMissingRouteField(event) {
+  if (!event.target.validity.valueMissing) return;
+  routeError.value = "";
+  showNotification(`請選擇${event.target.getAttribute("aria-label")}。`, "error");
 }
 
 function percent(distance) {
@@ -622,6 +623,9 @@ onMounted(async () => {
   border-color: var(--glow);
   color: var(--glow);
 }
+.primary {
+  margin-top: 20px;
+}
 .tools button:disabled {
   color: var(--muted);
   cursor: default;
@@ -661,6 +665,9 @@ onMounted(async () => {
   padding: 0 8px 4px;
   border: 1px solid var(--line);
   border-radius: 5px;
+}
+.tool-panel button {
+  margin-top: 15px;
 }
 .check {
   display: flex;

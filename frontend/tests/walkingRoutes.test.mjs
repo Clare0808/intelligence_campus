@@ -121,6 +121,50 @@ test("a reviewed road-closure point removes its matched segment", () => {
   assert.ok(result.osmWayIds.every((id) => id === 2));
 });
 
+test("chooses the shortest complete route instead of the nearest road projection", () => {
+  const data = network(
+    {
+      1: [0, 0],
+      2: [0.001, 0],
+      3: [0, 0.0001],
+      4: [0.001, 0.0001],
+    },
+    [
+      { id: 1, nodes: [1, 2], tags: { highway: "footway" } },
+      { id: 2, nodes: [3, 4], tags: { highway: "footway" } },
+      { id: 3, nodes: [1, 3], tags: { highway: "footway" } },
+      { id: 4, nodes: [2, 4], tags: { highway: "footway" } },
+    ]
+  );
+  const result = createRoutePlanner(data).plan(
+    [0.0001, 0.000045],
+    [0.0009, 0.0001],
+    "walking",
+    []
+  );
+  assert.ok(result);
+  assert.ok(result.osmWayIds.every((id) => id === 2));
+  assert.ok(result.distance < 90);
+});
+
+test("a closure forces the shortest remaining detour and cannot be used as an endpoint", () => {
+  const data = alternativeNetwork();
+  const planner = createRoutePlanner(data);
+  const closure = [{
+    kind: "construction",
+    road_closed: true,
+    longitude: 0.0001,
+    latitude: 0,
+  }];
+  const result = planner.plan([0, 0], [0.0002, 0], "walking", closure);
+  assert.ok(result);
+  assert.ok(result.osmWayIds.every((id) => id === 2));
+  assert.equal(
+    planner.plan([0.0001, 0], [0.0002, 0], "walking", closure)?.osmWayIds.includes(1),
+    false
+  );
+});
+
 function onSegment(point, a, b) {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];

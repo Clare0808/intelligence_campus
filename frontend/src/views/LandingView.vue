@@ -5,7 +5,7 @@
   >
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <div id="hero-title">iNCUCampus</div>
+        <div id="hero-title">iNCU Campus</div>
         <div class="sub-title">串聯校園資訊，打造更便利的智慧生活。</div>
         <!-- <button
           class="explore-button"

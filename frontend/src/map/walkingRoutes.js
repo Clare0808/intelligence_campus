@@ -152,25 +152,37 @@ export function createRoutePlanner(network) {
       const components = connectedComponents(neighbors);
       const fromOptions = endpointCandidates(start, available, components);
       const toOptions = endpointCandidates(end, available, components);
-      const pairs = [...fromOptions]
-        .filter(([component]) => toOptions.has(component))
-        .map(([component, from]) => ({ from, to: toOptions.get(component) }))
-        .sort(
-          (a, b) => a.from.offset + a.to.offset - b.from.offset - b.to.offset
-        );
-      if (!pairs.length) return null;
-      const { from, to } = pairs[0];
-      if (distanceMeters(from.coordinates, to.coordinates) < 0.1) return null;
-      attachEndpoint(neighbors, "start", from);
-      attachEndpoint(neighbors, "end", to);
-      if (from.segment.key === to.segment.key) {
-        connect(neighbors, "start", "end", {
-          ...from.segment,
-          meters: distanceMeters(from.coordinates, to.coordinates),
-        });
+      let best = null;
+      for (const [component, starts] of fromOptions) {
+        const ends = toOptions.get(component);
+        if (!ends) continue;
+        for (const from of starts) {
+          for (const to of ends) {
+            if (distanceMeters(from.coordinates, to.coordinates) < 0.1) continue;
+            const graph = new Map(
+              [...neighbors].map(([node, edges]) => [node, [...edges]])
+            );
+            attachEndpoint(graph, "start", from);
+            attachEndpoint(graph, "end", to);
+            if (from.segment.key === to.segment.key) {
+              connect(graph, "start", "end", {
+                ...from.segment,
+                meters: distanceMeters(from.coordinates, to.coordinates),
+              });
+            }
+            const route = shortestPath(graph, "start", "end", mode);
+            if (!route) continue;
+            const cost =
+              from.offset +
+              to.offset +
+              route.reduce((sum, edge) => sum + edgeWeight(edge, mode), 0);
+            if (!best || cost < best.cost)
+              best = { from, to, fullPath: route, cost };
+          }
+        }
       }
-      const fullPath = shortestPath(neighbors, "start", "end", mode);
-      if (!fullPath) return null;
+      if (!best) return null;
+      const { from, to, fullPath } = best;
       const path = fullPath.filter(({ meters }) => meters > 0.0001);
       const coverage = { distance: 0, lit: 0, lightingKnown: 0, wheelchair: 0 };
       for (const { meters, tags } of path) {
@@ -243,15 +255,19 @@ function endpointCandidates(point, segments, components) {
     if (offset > maxEndpointDistance) continue;
     closest = Math.min(closest, offset);
     const component = components.get(segment.from);
-    if (offset < (candidates.get(component)?.offset ?? Infinity)) {
-      candidates.set(component, { segment, coordinates, offset });
-    }
+    if (!candidates.has(component)) candidates.set(component, []);
+    candidates.get(component).push({ segment, coordinates, offset });
   }
   // Exact road points stay on their component. Building reference points may
   // select another nearby road, with the remaining offset shown to the user.
   const limit = closest <= 1 ? 1 : closest + 35;
   return new Map(
-    [...candidates].filter(([, candidate]) => candidate.offset <= limit)
+    [...candidates]
+      .map(([component, options]) => [
+        component,
+        options.filter((candidate) => candidate.offset <= limit),
+      ])
+      .filter(([, options]) => options.length)
   );
 }
 
